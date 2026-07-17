@@ -10,8 +10,10 @@ the result is cached process-wide. Third-party runtimes register through the
 
 from __future__ import annotations
 
+import ctypes
 import functools
 import os
+import sys
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -44,8 +46,36 @@ def _load_cpu() -> DeviceRuntime:
     return CpuRuntime()
 
 
+def _dlopen(name: str) -> object | None:
+    """Seam for tests: dlopen `name`, or None when it is not loadable."""
+    try:
+        return ctypes.CDLL(name)
+    except OSError:
+        return None
+
+
+_CUDA_DRIVER_LIBRARIES: tuple[str, ...] = (
+    ("nvcuda.dll",) if sys.platform == "win32" else ("libcuda.so.1", "libcuda.so")
+)
+
+
+def _cuda_probe() -> bool:
+    # Platform-keyed probe (design §4.2): is an NVIDIA *driver* loadable?
+    # Cheap by design — the heavyweight libcudart load happens in the loader.
+    return any(_dlopen(name) is not None for name in _CUDA_DRIVER_LIBRARIES)
+
+
+def _load_cuda() -> DeviceRuntime:
+    from devmm._runtimes.cuda import CudaRuntime
+
+    return CudaRuntime()
+
+
 # Built-in runtimes, in preference order; entry points are appended after.
-_BUILTIN_SPECS: tuple[_RuntimeSpec, ...] = (_RuntimeSpec("cpu", _cpu_probe, _load_cpu),)
+_BUILTIN_SPECS: tuple[_RuntimeSpec, ...] = (
+    _RuntimeSpec("cpu", _cpu_probe, _load_cpu),
+    _RuntimeSpec("cuda", _cuda_probe, _load_cuda),
+)
 
 
 def _entry_points() -> Iterable[metadata.EntryPoint]:
@@ -194,10 +224,12 @@ def runtime_for(device: Device | DeviceType | str) -> DeviceRuntime:
             continue
         if device_type in runtime.device_types:
             return runtime
-    available = ", ".join(spec.name for spec in specs) or "none"
+    # "registered", not "available": a listed runtime passed its probe (or
+    # was forced) but may still have failed to load.
+    registered = ", ".join(spec.name for spec in specs) or "none"
     raise RuntimeUnavailableError(
         f"no available device runtime supports {device_type.name.lower()} "
-        f"devices (available: {available}); install the matching platform "
+        f"devices (registered: {registered}); install the matching platform "
         f"stack, register a runtime in the {_ENTRY_POINT_GROUP!r} entry-point "
         "group, or set DEVMM_RUNTIME to force a specific runtime"
     )

@@ -79,11 +79,17 @@ class TestSetAndGet:
         assert mr.device == CPU
         assert get_current_memory_resource(CPU) is mr
 
-    def test_unset_device_without_a_runtime_raises_runtime_unavailable(self) -> None:
+    def test_unset_device_without_a_runtime_raises_runtime_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Forcing the cpu runtime makes "no runtime serves cuda" true even
+        # on hosts where the real CUDA runtime would load.
+        monkeypatch.setenv("DEVMM_RUNTIME", "cpu")
         with pytest.raises(RuntimeUnavailableError, match="cuda"):
             get_current_memory_resource(CUDA)
 
-    def test_failed_default_lookup_caches_nothing(self) -> None:
+    def test_failed_default_lookup_caches_nothing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("DEVMM_RUNTIME", "cpu")
         with pytest.raises(RuntimeUnavailableError):
             get_current_memory_resource(CUDA)
         assert registry_module._registry == {}

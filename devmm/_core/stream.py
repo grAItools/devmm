@@ -14,6 +14,12 @@ from devmm._core.device import Device, DeviceType
 _CPU_DEVICE = Device(DeviceType.CPU)
 
 
+class StreamError(RuntimeError):
+    """A stream-ordering primitive failed (design §8): the event
+    record/stream-wait sequence behind `Stream.wait_raw` and the
+    `__dlpack__(stream=...)` consumer handoff."""
+
+
 class Stream(abc.ABC):
     """An opaque native stream handle plus ordering primitives.
 

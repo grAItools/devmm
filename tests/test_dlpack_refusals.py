@@ -20,6 +20,14 @@ _capsule_get_pointer = ctypes.PYFUNCTYPE(ctypes.c_void_p, ctypes.py_object, ctyp
 )
 
 
+@pytest.fixture(autouse=True)
+def _cpu_runtime_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Force the no-runtime handoff fallback for the fake GPU devices: on a
+    CUDA host the real runtime would otherwise pick up the handoff and hand
+    the fake stream handles to the driver."""
+    monkeypatch.setenv("DEVMM_RUNTIME", "cpu")
+
+
 class _FakeGpuStream(Stream):
     """Records synchronize calls; `empty()` and the exporter only ever read
     `device` and ordering primitives off it, so no hardware is involved."""

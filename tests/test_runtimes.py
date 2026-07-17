@@ -44,8 +44,19 @@ _SPI_CHECK: DeviceRuntime = CpuRuntime()
 
 @pytest.fixture(autouse=True)
 def _isolated_discovery(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Fresh runtime/spec caches and no ambient `DEVMM_RUNTIME` per test."""
+    """Fresh runtime/spec caches, cpu-only built-ins and no ambient
+    `DEVMM_RUNTIME` per test.
+
+    The GPU built-ins probe the host's driver libraries, so leaving them in
+    would make these assertions host-dependent; their discovery wiring has
+    its own suites (`tests/test_cuda_runtime.py`).
+    """
     monkeypatch.delenv("DEVMM_RUNTIME", raising=False)
+    monkeypatch.setattr(
+        _discovery,
+        "_BUILTIN_SPECS",
+        tuple(spec for spec in _discovery._BUILTIN_SPECS if spec.name == "cpu"),
+    )
     saved = dict(_discovery._loaded)
     _discovery._loaded.clear()
     _discovery._clear_spec_cache()
@@ -132,7 +143,8 @@ class TestDiscovery:
             "import devmm\n"
             "names = devmm.runtime_names()\n"
             "assert 'cpu' in names, names\n"
-            "heavy = [m for m in ('devmm._runtimes.cpu', 'devmm.mrs.cpu', 'numpy')"
+            "heavy = [m for m in ('devmm._runtimes.cpu', 'devmm.mrs.cpu',"
+            " 'devmm._runtimes.cuda', 'devmm.mrs.cuda', 'numpy')"
             " if m in sys.modules]\n"
             "assert not heavy, f'runtime_names() imported {heavy}'\n"
         )

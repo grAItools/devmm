@@ -140,9 +140,11 @@ class DeviceBuffer:
             raise ValueError(f"{operation} on a freed DeviceBuffer (use-after-free)")
 
     def _check_host_resident(self, operation: str) -> None:
-        # The helpers stage through host memory and issue a HOST_TO_HOST
-        # memcpy; device-resident buffers need the runtime's device-transfer
-        # copy kinds, which no wired runtime implements (design §4.1).
+        # The byte helpers stage through host memory and issue a
+        # HOST_TO_HOST memcpy, so they are wired only for host-resident
+        # buffers; routing device buffers through the runtime's
+        # device-transfer copy kinds is future work (design §3.5 scopes the
+        # helpers to testing/bootstrap, not a transfer API).
         if self.device.type is not DeviceType.CPU:
             raise NotImplementedError(
                 f"{operation} supports only host-resident (cpu) buffers, not {self.device}"

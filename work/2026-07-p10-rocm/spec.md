@@ -15,6 +15,7 @@ Python developers building on devmm (this phase's consumers are the later phases
 ## Success criteria
 - The Phase-9 fake-api suite, re-parametrized for HIP symbol names/error tables, passes on T0 (the shared shim pays off).
 - Given fake `rmm` modules with CUDA-ish vs HIP-ish markers, the probe selects correctly and `DEVMM_RUNTIME` overrides win.
+  - Note: design §4.2's rmm platform-verification sentinel (hipMM installs a module also named `rmm`) is **not** implemented by p09's `devmm._runtimes.cuda._import_rmm`, which trusts any importable `rmm`; it must land here alongside the ROCm runtime.
 - On T3 hardware, the conformance + round-trip suite passes with CuPy-ROCm and/or PyTorch-ROCm as available.
 
 ## Non-goals

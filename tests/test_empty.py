@@ -20,6 +20,7 @@ from devmm import (
 )
 from devmm._core import dtypes
 from devmm._core.stream import CpuStream
+from devmm._runtimes.base import RuntimeUnavailableError
 from devmm.mrs.cpu import MallocMemoryResource
 from devmm.testing import RecordingMemoryResource
 from tests._dlpack_utils import write_pattern
@@ -68,10 +69,16 @@ class TestEmpty:
         with pytest.raises(ValueError):
             empty((2,), "float32", mr=mr)
 
-    def test_non_cpu_devices_need_an_explicit_stream(self) -> None:
+    def test_non_cpu_default_streams_require_a_runtime(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The default stream resolves through `runtime_for(device)`; forcing
+        # the cpu runtime makes "no runtime serves cuda" deterministic even
+        # on hosts where the real CUDA runtime would load.
+        monkeypatch.setenv("DEVMM_RUNTIME", "cpu")
         device = Device.from_string("cuda:0")
         mr = RecordingMemoryResource(device=device)
-        with pytest.raises(LookupError):
+        with pytest.raises(RuntimeUnavailableError):
             empty((2,), "float32", device=device, mr=mr)
 
     def test_accepts_a_concrete_layout(self) -> None:

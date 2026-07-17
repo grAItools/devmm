@@ -14,6 +14,7 @@ from devmm._core.memory_resource import DeviceMemoryResource
 from devmm._core.registry import get_current_memory_resource
 from devmm._core.stream import CpuStream, Stream
 from devmm._dlpack.export import to_capsule
+from devmm._runtimes._discovery import runtime_for
 
 if TYPE_CHECKING:
     # Annotation-only: `types.CapsuleType` is 3.13+, and typing_extensions
@@ -101,14 +102,13 @@ class Tensor:
 def _default_stream(device: Device) -> Stream:
     """The stream used when a factory caller passes none.
 
-    CPU work is synchronous (a single no-op stream). For every other device
-    the caller must pass a stream explicitly: stream defaults are not routed
-    through the device runtime's `default_stream` (design §4.1), so no
-    non-CPU device has one here.
+    CPU work is synchronous (a single no-op stream); every other device gets
+    its runtime's platform default stream (design §4.1), so a device no
+    runtime serves raises `RuntimeUnavailableError`.
     """
     if device.type is DeviceType.CPU:
         return CpuStream(device)
-    raise LookupError(f"no default stream for {device}; pass stream= explicitly")
+    return runtime_for(device).default_stream(device)
 
 
 def _aligned_element_offset(ptr: int, itemsize: int, alignment: int) -> int:
