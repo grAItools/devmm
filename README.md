@@ -7,7 +7,7 @@ allocation strategies, and exposes every allocation as a zero-copy
 **DLPack ≥ 1.0** producer consumable by any Array-API library (NumPy, CuPy,
 PyTorch, JAX). Zero required dependencies; `ctypes` only.
 
-The authoritative design is [`specs/devmm-design.md`](specs/devmm-design.md).
+The authoritative design is [`work/devmm-design.md`](work/devmm-design.md).
 
 ## Quickstart
 
@@ -28,7 +28,7 @@ This repository follows the **agent-agnostic harness** convention:
   stanzas (skills, subagents, slash commands, hooks).
 - Shared agent assets (skills, subagents, and slash commands) live under
   `.agents/` and are symlinked into `.claude/` and `.opencode/`.
-- Per-feature specs go under `specs/<YYYY-MM>-<slug>/`.
+- Per-feature specs go under `work/<YYYY-MM>-<slug>/`.
 - Architecture decisions are in `docs/adr/` (Michael Nygard format, append-only).
 
 See `AGENTS.md` for the full conventions.

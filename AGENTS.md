@@ -8,7 +8,7 @@ existing allocators (rmm, hipMM, CuPy pools, libc) rather than implementing
 allocation strategies, and exposes every allocation as a zero-copy
 **DLPack ≥ 1.0** producer. `ctypes` is used only for DLPack structs/capsules and
 raw C-ABI runtime interop. Authoritative design:
-[`specs/devmm-design.md`](specs/devmm-design.md).
+[`work/devmm-design.md`](work/devmm-design.md).
 
 ## Stack
 
@@ -35,7 +35,7 @@ this file.
 - Style guide: [`docs/style.md`](docs/style.md)
 - Testing strategy: [`docs/testing.md`](docs/testing.md)
 - ADRs (decisions of record): [`docs/adr/`](docs/adr/)
-- Per-feature specs: [`specs/<YYYY-MM>-<slug>/`](specs/)
+- Per-feature specs: [`work/<YYYY-MM>-<slug>/`](work/)
 - Supported agents & how to add one: [`.agents/README.md`](.agents/README.md)
 
 ## Do
@@ -87,7 +87,7 @@ this file.
 Per-feature spec directories use this layout:
 
 ```
-specs/<YYYY-MM>-<slug>/
+work/<YYYY-MM>-<slug>/
 ├─ spec.md     # WHAT and WHY; no implementation detail
 ├─ plan.md     # numbered phased plan; each phase has tests
 ├─ tasks.md    # checkbox list the agent ticks off

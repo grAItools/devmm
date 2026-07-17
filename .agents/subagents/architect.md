@@ -22,7 +22,7 @@ phase-by-phase, with tests as the contract for each phase.
 ## Goal
 
 Produce `plan.md` and mirror it into a checkbox `tasks.md` in the same
-`specs/<YYYY-MM>-<slug>/` directory.
+`work/<YYYY-MM>-<slug>/` directory.
 
 ## Constraints
 
@@ -38,7 +38,7 @@ Produce `plan.md` and mirror it into a checkbox `tasks.md` in the same
 - Reuse existing code and patterns where possible — use Grep/Glob to
   find them before proposing new modules.
 - Never edit code. Write only `plan.md` and `tasks.md` under
-  `specs/<YYYY-MM>-<slug>/`. If the design needs an ADR, surface it
+  `work/<YYYY-MM>-<slug>/`. If the design needs an ADR, surface it
   in `plan.md`'s **Architecture decisions** block (with a one-line
   rationale and an "ADR needed: <topic>" marker); the human or the
   Developer authors the ADR file under `docs/adr/` as a separate

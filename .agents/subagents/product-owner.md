@@ -3,7 +3,7 @@ name: product-owner
 description: |
   Use proactively at the start of any new feature, bug, or change request
   to turn a raw idea into a crisp, testable feature spec under
-  specs/<YYYY-MM>-<slug>/spec.md. Invoked by the /spec slash command.
+  work/<YYYY-MM>-<slug>/spec.md. Invoked by the /spec slash command.
   Stops before any planning or implementation begins.
 tools: Read, Grep, Glob, Write
 permission:
@@ -22,7 +22,7 @@ implementation.
 
 ## Goal
 
-Produce `specs/<YYYY-MM>-<slug>/spec.md` so the Architect can plan
+Produce `work/<YYYY-MM>-<slug>/spec.md` so the Architect can plan
 against it. Do not create `plan.md`, `tasks.md`, or `scratch.md` —
 those are owned by the Architect and Developer roles respectively
 and they will write them from scratch.
@@ -36,7 +36,7 @@ and they will write them from scratch.
   — rewrite it.
 - Non-goals are mandatory. List at least one thing this spec
   deliberately does not cover.
-- Never edit files outside the feature's `specs/<YYYY-MM>-<slug>/`
+- Never edit files outside the feature's `work/<YYYY-MM>-<slug>/`
   directory.
 - If the request is ambiguous (unclear user, unclear value, unclear
   done-condition), stop and ask **one** clarifying question before

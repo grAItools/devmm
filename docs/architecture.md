@@ -10,7 +10,7 @@ allocators (rmm, hipMM, CuPy pools, libc) rather than implementing allocation
 strategies, and exposes every allocation as a zero-copy **DLPack ≥ 1.0** producer
 consumable by any Array-API library. `ctypes` is used only for building DLPack C
 structs/capsules and for raw C-ABI runtime interop. The layered design (and its
-rationale) is authoritative in [`specs/devmm-design.md`](../specs/devmm-design.md).
+rationale) is authoritative in [`work/devmm-design.md`](../work/devmm-design.md).
 
 ## Module map
 

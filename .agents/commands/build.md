@@ -1,14 +1,14 @@
 ---
 description: Implement the current feature one phase at a time, ticking tasks.md and running the verification gate at each phase boundary
-argument-hint: <spec-dir-name> (optional; defaults to the most recent specs/* directory)
+argument-hint: <spec-dir-name> (optional; defaults to the most recent work/* directory)
 ---
 
 You are carrying out the implementation phase of a feature.
 
 1. Identify the target spec directory.
-   - If `$ARGUMENTS` is provided, use `specs/$ARGUMENTS/`.
+   - If `$ARGUMENTS` is provided, use `work/$ARGUMENTS/`.
    - Otherwise, use the most recently modified directory under
-     `specs/`.
+     `work/`.
 2. Read `spec.md`, `plan.md`, and `tasks.md` in full. If `plan.md` is
    missing or empty, stop and tell the user to run `/plan` first.
 3. If the plan touches an unfamiliar area of the codebase, run an

@@ -7,7 +7,7 @@ Accepted
 ## Context
 
 The devmm implementation plan
-([`specs/devmm-implementation-plan.md`](../../specs/devmm-implementation-plan.md),
+([`work/devmm-implementation-plan.md`](../../work/devmm-implementation-plan.md),
 §0) fixes the repository tooling and names **`just`** as the command runner, with
 `justfile` targets `just lint`, `just typecheck`, `just test`, `just gate N`, and
 `just gate-all` driving the phased build.
@@ -43,7 +43,7 @@ targets map onto `make` targets:
 
 `make verify` remains the cumulative gate the agent hooks call; `make gate-all`
 runs the full release-gate sequence. The `gate-N` / `gate-all` / `typecheck`
-targets are added in build phase p00 (`specs/2026-07-p00-scaffold/`), not before.
+targets are added in build phase p00 (`work/2026-07-p00-scaffold/`), not before.
 
 This is a deviation from the implementation plan's stated tooling. The plan text
 is not amended (it remains the historical build order); this ADR is the record of

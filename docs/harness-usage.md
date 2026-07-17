@@ -35,7 +35,7 @@ idea ──/spec──▶ spec.md ──/plan──▶ plan.md + tasks.md ──
 ```
 
 Plus a read-only `explorer` agent any phase can call for codebase Q&A. Each
-phase writes fixed artifacts under `specs/<YYYY-MM>-<slug>/`.
+phase writes fixed artifacts under `work/<YYYY-MM>-<slug>/`.
 
 The five subagents and their access:
 
@@ -173,7 +173,7 @@ language and the correct agent + output format is selected automatically.
 
 ### Phase 2 — Plan (architect)
 
-- **Trigger:** `/plan` after the spec is reviewed (defaults to most recent `specs/*`).
+- **Trigger:** `/plan` after the spec is reviewed (defaults to most recent `work/*`).
 - **What you get:** `plan.md` (Architecture-decisions block + numbered phases,
   each ≤1 day with explicit Tests and Exit criteria) and a mirrored checkbox
   `tasks.md`.

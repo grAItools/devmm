@@ -1,5 +1,5 @@
 ---
-description: Create a new feature spec directory under specs/<YYYY-MM>-<slug>/
+description: Create a new feature spec directory under work/<YYYY-MM>-<slug>/
 argument-hint: <kebab-case-slug>
 ---
 
@@ -8,7 +8,7 @@ You are creating a new feature spec.
 1. If `$ARGUMENTS` is empty, ask the user for a slug before creating
    anything.
 2. Compute today's date as `YYYY-MM`. The directory is
-   `specs/<YYYY-MM>-$ARGUMENTS/`.
+   `work/<YYYY-MM>-$ARGUMENTS/`.
 3. Create the directory if it doesn't exist. **Do not** pre-create
    `plan.md`, `tasks.md`, or `scratch.md` — each role creates the
    artifacts it owns (Architect: `plan.md`/`tasks.md`; Developer:
