@@ -14,24 +14,24 @@ rationale) is authoritative in [`work/devmm-design.md`](../work/devmm-design.md)
 
 ## Module map
 
-- `devmm/` — **public re-exports only** (`empty`, `empty_like`, `Device`,
+- `src/devmm/` — **public re-exports only** (`empty`, `empty_like`, `Device`,
   `Stream`, `Tensor`, `DeviceBuffer`, `Layout`, `LayoutPolicy`,
   `DeviceMemoryResource`, `available_runtimes`, `runtime_for`, …).
-- `devmm/_core/` — runtime-agnostic domain model: `device`, `stream`,
+- `src/devmm/_core/` — runtime-agnostic domain model: `device`, `stream`,
   `memory_resource` (the `DeviceMemoryResource` ABC + Statistics/Logging/
   Limiting/Callback adaptors), `buffer`, `layout`, `dtypes`, `tensor`,
   `registry` (per-device current-MR registry).
-- `devmm/_dlpack/` — ctypes DLPack export layer: `_abi` (struct mirrors of
+- `src/devmm/_dlpack/` — ctypes DLPack export layer: `_abi` (struct mirrors of
   `dlpack.h`) and `export` (capsule building, deleters, version negotiation,
   stream handoff).
-- `devmm/_runtimes/` — one `DeviceRuntime` per platform (`cpu`, `cuda`, `rocm`),
+- `src/devmm/_runtimes/` — one `DeviceRuntime` per platform (`cpu`, `cuda`, `rocm`),
   plus `base` (the SPI `Protocol`) and `_discovery` (platform probes + entry
   points).
-- `devmm/mrs/` — **public** concrete memory resources per platform (`cpu`,
+- `src/devmm/mrs/` — **public** concrete memory resources per platform (`cpu`,
   `cuda`, `rocm`).
-- `devmm/integrations/` — "install a devmm MR *into* X" bridges (`numpy` NEP-49,
+- `src/devmm/integrations/` — "install a devmm MR *into* X" bridges (`numpy` NEP-49,
   `cupy`, `numba` EMM plugin, `rmm`).
-- `devmm/testing/` — mock runtime/MR and the hardware-free conformance suite.
+- `src/devmm/testing/` — mock runtime/MR and the hardware-free conformance suite.
 
 ## External dependencies
 

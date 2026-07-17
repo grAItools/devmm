@@ -1,6 +1,6 @@
 /*
  * abi_oracle.c — compiled reference for the ctypes mirrors in
- * devmm/_dlpack/_abi.py (design §7.1).
+ * src/devmm/_dlpack/_abi.py (design §7.1).
  *
  * Prints the sizeof/offsetof of every DLPack struct as JSON so the test
  * suite can diff a real compiler's layout against ctypes, and so the

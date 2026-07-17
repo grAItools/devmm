@@ -1,6 +1,6 @@
 # DLPack ABI oracle
 
-Compiled reference for the ctypes mirrors in `devmm/_dlpack/_abi.py`
+Compiled reference for the ctypes mirrors in `src/devmm/_dlpack/_abi.py`
 (design §7.1); exercised by `tests/test_dlpack_abi.py`.
 
 - `dlpack.h` — vendored verbatim from the DLPack **v1.1** release tag

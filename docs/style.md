@@ -9,7 +9,7 @@ the rules below; this file documents intent, not syntax.
 
 ## Conventions
 
-- **Layout & privacy.** Public API is re-exported from `devmm/__init__.py`;
+- **Layout & privacy.** Public API is re-exported from `src/devmm/__init__.py`;
   everything under `_core/`, `_dlpack/`, `_runtimes/` is private (leading
   underscore). Users import concrete resources from `devmm.mrs.*` and bridges
   from `devmm.integrations.*`. One class/concept per module, matching the design's

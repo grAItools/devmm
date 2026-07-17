@@ -50,7 +50,7 @@
 Package layout:
 
 ```
-devmm/
+src/devmm/
 ├── __init__.py             # public re-exports only
 ├── _core/
 │   ├── device.py           # DeviceType, Device

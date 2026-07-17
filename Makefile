@@ -23,7 +23,7 @@ test-devmode:  ## Run the suite under PYTHONDEVMODE=1 with faulthandler
 # `# pragma: no cover` / exclusions (see pyproject.toml).
 coverage:  ## Enforce the coverage thresholds
 	uv run --extra test pytest -q --cov=devmm --cov-report=term-missing --cov-fail-under=90
-	uv run --extra test pytest -q --cov=devmm/_core --cov=devmm/_dlpack --cov-fail-under=95
+	uv run --extra test pytest -q --cov=devmm._core --cov=devmm._dlpack --cov-fail-under=95
 
 lint:  ## Run static checks (does not auto-fix)
 	uv run ruff check .

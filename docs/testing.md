@@ -42,7 +42,7 @@ smoke jobs on GPU CI.
 
 The release gate adds numeric thresholds (`make coverage`, enforced by the
 `gate-coverage` CI leg on Linux): **≥ 90% overall** and **≥ 95% on
-`devmm/_core` + `devmm/_dlpack`**. Anything left uncovered must carry a
+`devmm._core` + `devmm._dlpack`**. Anything left uncovered must carry a
 reasoned `# pragma: no cover` or match a documented exclusion in
 `pyproject.toml` (`[tool.coverage.report]`) — platform-only branches, debug
 `__repr__`s, abstract seams. Never add a pragma to dodge writing a feasible

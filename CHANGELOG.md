@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+- Repository layout: the package moved from `devmm/` to `src/devmm/`
+  (src-layout). No user-facing change — imports and wheel contents are
+  identical.
+
 ## [0.1.0] - 2026-07-17
 
 First release: a uniform, pure-Python, zero-dependency interface for
