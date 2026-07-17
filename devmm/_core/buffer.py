@@ -4,13 +4,15 @@ and deterministic scope-based release (§3.5).
 
 from __future__ import annotations
 
-import ctypes
 import weakref
 from types import TracebackType
 
 from devmm._core.device import Device, DeviceType
 from devmm._core.memory_resource import DeviceMemoryResource
 from devmm._core.stream import Stream
+from devmm._runtimes import _hostcopy
+from devmm._runtimes._discovery import runtime_for
+from devmm._runtimes.base import CopyKind
 
 
 class DeviceBuffer:
@@ -101,7 +103,7 @@ class DeviceBuffer:
         self._check_open("copy_from_host")
         self._check_host_resident("copy_from_host")
         view = memoryview(data)
-        # C-contiguity specifically: `tobytes()` below serialises in C order,
+        # C-contiguity specifically: the staging copy serialises in C order,
         # so accepting a merely Fortran-contiguous view would silently
         # reorder the bytes it copies.
         if not view.c_contiguous:
@@ -109,7 +111,15 @@ class DeviceBuffer:
         if view.nbytes > self.nbytes:
             raise ValueError(f"cannot copy {view.nbytes} bytes into a {self.nbytes}-byte buffer")
         if view.nbytes:
-            ctypes.memmove(self.ptr, view.tobytes(), view.nbytes)
+            # HOST_TO_HOST because `_check_host_resident` above confines the
+            # helpers to host-resident buffers.
+            _hostcopy.copy_from_host(
+                runtime_for(self.device),
+                self.ptr,
+                view,
+                CopyKind.HOST_TO_HOST,
+                self.stream if stream is None else stream,
+            )
 
     def copy_to_host(self, stream: Stream | None = None) -> bytes:
         """Read the buffer's full contents back as bytes (see `copy_from_host`)."""
@@ -117,16 +127,22 @@ class DeviceBuffer:
         self._check_host_resident("copy_to_host")
         if self.nbytes == 0:
             return b""
-        return ctypes.string_at(self.ptr, self.nbytes)
+        return _hostcopy.copy_to_host(
+            runtime_for(self.device),
+            self.ptr,
+            self.nbytes,
+            CopyKind.HOST_TO_HOST,
+            self.stream if stream is None else stream,
+        )
 
     def _check_open(self, operation: str) -> None:
         if self.closed:
             raise ValueError(f"{operation} on a freed DeviceBuffer (use-after-free)")
 
     def _check_host_resident(self, operation: str) -> None:
-        # The copy helpers are backed by ctypes.memmove, which can only
-        # address host memory; device-resident buffers need the runtime's
-        # memcpy primitive (design §4.1).
+        # The helpers stage through host memory and issue a HOST_TO_HOST
+        # memcpy; device-resident buffers need the runtime's device-transfer
+        # copy kinds, which no wired runtime implements (design §4.1).
         if self.device.type is not DeviceType.CPU:
             raise NotImplementedError(
                 f"{operation} supports only host-resident (cpu) buffers, not {self.device}"

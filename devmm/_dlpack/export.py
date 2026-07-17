@@ -24,6 +24,8 @@ from devmm._dlpack._abi import (
     DLManagedTensorVersionedDeleter,
     DLTensor,
 )
+from devmm._runtimes._discovery import runtime_for
+from devmm._runtimes.base import RuntimeUnavailableError
 
 if TYPE_CHECKING:
     # Annotation-only: `types.CapsuleType` is 3.13+, and typing_extensions
@@ -279,11 +281,16 @@ def to_capsule(
     version = _negotiate_version(max_version, tensor.read_only)
     consumer_handle = _validated_consumer_stream(buffer.device.type, stream)
     if consumer_handle is not None:
-        # Event-based ordering (runtime.make_stream_wait, design §4.1) needs a
-        # device runtime; a full producer-stream synchronize is the
-        # conservative, always-correct fallback. CPU never reaches this: its
-        # table admits no consumer handle.
-        buffer.stream.synchronize()
+        # Event-based ordering through the device runtime (design §7.3);
+        # with no runtime serving the device, a full producer-stream
+        # synchronize is the conservative, always-correct fallback. CPU
+        # never reaches this: its table admits no consumer handle.
+        try:
+            runtime = runtime_for(buffer.device)
+        except RuntimeUnavailableError:
+            buffer.stream.synchronize()
+        else:
+            runtime.make_stream_wait(consumer_handle, buffer.stream)
 
     ndim = len(tensor.shape)
     struct_type: type[DLManagedTensorVersioned] | type[DLManagedTensor]

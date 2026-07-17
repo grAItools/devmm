@@ -52,6 +52,7 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
         "(buffer: 'DeviceBuffer', dtype: 'DType', shape: 'tuple[int, ...]', "
         "layout: 'Layout', *, offset: 'int' = 0, read_only: 'bool' = False) -> 'None'"
     ),
+    "available_runtimes": "() -> 'tuple[DeviceRuntime, ...]'",
     "empty": (
         "(shape: 'tuple[int, ...]', dtype: 'object', *, "
         "device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0), "
@@ -66,6 +67,8 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
         "stream: 'Stream | None' = None) -> 'Tensor'"
     ),
     "get_current_memory_resource": "(device: 'Device') -> 'DeviceMemoryResource'",
+    "runtime_for": "(device: 'Device | DeviceType | str') -> 'DeviceRuntime'",
+    "runtime_names": "() -> 'tuple[str, ...]'",
     "set_current_memory_resource": "(mr: 'DeviceMemoryResource') -> 'None'",
     "using_memory_resource": "(mr: 'DeviceMemoryResource') -> 'Iterator[DeviceMemoryResource]'",
 }

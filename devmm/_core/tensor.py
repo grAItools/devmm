@@ -101,13 +101,14 @@ class Tensor:
 def _default_stream(device: Device) -> Stream:
     """The stream used when a factory caller passes none.
 
-    CPU work is synchronous (a single no-op stream); other devices get their
-    default stream from the device runtime (design §4.1) — until a runtime is
-    wired for them, the caller must pass one explicitly.
+    CPU work is synchronous (a single no-op stream). For every other device
+    the caller must pass a stream explicitly: stream defaults are not routed
+    through the device runtime's `default_stream` (design §4.1), so no
+    non-CPU device has one here.
     """
     if device.type is DeviceType.CPU:
         return CpuStream(device)
-    raise LookupError(f"no device runtime is wired for {device}; pass stream= explicitly")
+    raise LookupError(f"no default stream for {device}; pass stream= explicitly")
 
 
 def _aligned_element_offset(ptr: int, itemsize: int, alignment: int) -> int:

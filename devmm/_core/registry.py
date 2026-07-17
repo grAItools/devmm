@@ -12,6 +12,7 @@ from types import MappingProxyType
 
 from devmm._core.device import Device
 from devmm._core.memory_resource import DeviceMemoryResource
+from devmm._runtimes._discovery import runtime_for
 
 _lock = threading.Lock()
 
@@ -29,21 +30,20 @@ _overrides: ContextVar[Mapping[Device, DeviceMemoryResource]] = ContextVar(
 )
 
 
-def _unwired_default(device: Device) -> DeviceMemoryResource:
-    """Lazy-default seam: device runtimes replace this with their
-    `default_memory_resource` lookup (design §4.1). Until one is wired,
-    resolution for an unset device fails cleanly.
+def _runtime_default(device: Device) -> DeviceMemoryResource:
+    """Lazy default: first access for an unset device asks its runtime for
+    the default MR (design §3.4, §4.1). Raises `RuntimeUnavailableError`
+    when no runtime serves the device.
 
-    The factory is invoked while `_lock` (non-reentrant) is held, so a
-    replacement must never call back into `get_current_memory_resource` or
-    `set_current_memory_resource` — that would deadlock."""
-    raise LookupError(
-        f"no current memory resource is set for {device} and no device runtime "
-        "default is wired; call set_current_memory_resource() first"
-    )
+    The factory is invoked while `_lock` (non-reentrant) is held, so it must
+    never call back into `get_current_memory_resource` or
+    `set_current_memory_resource` — that would deadlock. Discovery and the
+    runtimes' `default_memory_resource` construct MRs without consulting the
+    registry."""
+    return runtime_for(device).default_memory_resource(device)
 
 
-_default_factory: Callable[[Device], DeviceMemoryResource] = _unwired_default
+_default_factory: Callable[[Device], DeviceMemoryResource] = _runtime_default
 
 
 def get_current_memory_resource(device: Device) -> DeviceMemoryResource:

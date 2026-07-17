@@ -1,14 +1,13 @@
 """Registry contract tests: strong-ref current-MR storage keyed by device,
 `using_memory_resource` restore-on-exit/-exception, contextvar isolation
-across threads and asyncio tasks, and the unwired lazy default raising
-cleanly (design §3.4).
+across threads and asyncio tasks, and the lazy default resolving through the
+device runtime (design §3.4, §4.1).
 """
 
 from __future__ import annotations
 
 import asyncio
 import gc
-import re
 import threading
 import weakref
 from collections.abc import Iterator
@@ -24,6 +23,8 @@ from devmm import (
     using_memory_resource,
 )
 from devmm._core import registry as registry_module
+from devmm._runtimes.base import RuntimeUnavailableError
+from devmm.mrs.cpu import MallocMemoryResource
 from devmm.testing import RecordingMemoryResource
 
 CPU = Device(DeviceType.CPU)
@@ -70,13 +71,21 @@ class TestSetAndGet:
         assert ref() is not None
         assert get_current_memory_resource(CPU) is ref()
 
-    def test_unset_device_raises_lookup_error_naming_the_device(self) -> None:
-        with pytest.raises(LookupError, match=re.escape(str(CUDA))):
+    def test_unset_cpu_device_adopts_the_runtime_default_and_caches_it(self) -> None:
+        # The factory runs while the registry lock is held, so completing at
+        # all also proves it never calls back into the accessors (§3.4).
+        mr = get_current_memory_resource(CPU)
+        assert isinstance(mr, MallocMemoryResource)
+        assert mr.device == CPU
+        assert get_current_memory_resource(CPU) is mr
+
+    def test_unset_device_without_a_runtime_raises_runtime_unavailable(self) -> None:
+        with pytest.raises(RuntimeUnavailableError, match="cuda"):
             get_current_memory_resource(CUDA)
 
     def test_failed_default_lookup_caches_nothing(self) -> None:
-        with pytest.raises(LookupError):
-            get_current_memory_resource(CPU)
+        with pytest.raises(RuntimeUnavailableError):
+            get_current_memory_resource(CUDA)
         assert registry_module._registry == {}
 
 
