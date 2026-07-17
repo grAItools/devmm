@@ -55,8 +55,17 @@ packages = ["devmm"]
 dev = [
     "ruff",
     "pytest",
+    "pytest-cov",
     "hypothesis",
+    "mypy",
 ]
+
+# ---------------------------------------------------------------------------
+# Mypy — strict types are part of every gate (`make verify` / `make gate-N`)
+# ---------------------------------------------------------------------------
+[tool.mypy]
+strict = true
+files = ["devmm", "tests"]
 
 # ---------------------------------------------------------------------------
 # Ruff — linter + formatter (the project's `make lint` / `make fmt` gate)

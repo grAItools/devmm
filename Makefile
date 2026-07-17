@@ -1,4 +1,4 @@
-.PHONY: help test test-all lint fmt fmt-check verify dev clean
+.PHONY: help test test-all lint typecheck fmt fmt-check verify gate-all dev clean
 
 help:  ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
@@ -13,6 +13,9 @@ test-all: test  ## Run the full suite (override to add integration/e2e)
 lint:  ## Run static checks (does not auto-fix)
 	uv run ruff check .
 
+typecheck:  ## Strict static types (mypy config lives in pyproject.toml)
+	uv run mypy
+
 fmt:  ## Auto-format: apply ruff lint fixes (imports, etc.) then format
 	uv run ruff check --fix .
 	uv run ruff format .
@@ -22,6 +25,14 @@ fmt-check:  ## Check formatting without modifying files
 
 verify:  ## What the agent runs before claiming done
 	@./scripts/verify.sh
+
+# Gates are cumulative, so every gate-N aliases the current full verify gate
+# (see docs/adr/0002-task-runner-make-over-just.md).
+gate-%: verify
+	@echo "gate-$*: green"
+
+gate-all: verify  ## Cumulative gate: lint + mypy --strict + tests + packaging
+	@echo "gate-all: green"
 
 dev:  ## Run the local dev workflow (override per-project)
 	@echo "dev: override this target to start your dev server / watcher"

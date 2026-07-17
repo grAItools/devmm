@@ -26,6 +26,7 @@ run() {
 
 run "format" uv run ruff format --check .
 run "lint" uv run ruff check .
+run "typecheck" uv run mypy
 run "test" uv run pytest -q
 
 if [ "$failed" -ne 0 ]; then

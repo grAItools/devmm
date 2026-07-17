@@ -1,0 +1,55 @@
+# CI gate for devmm.
+#
+# - T0 matrix: 3 OSes x {min, max} supported Python; runs the cumulative gate
+#   (format + lint + mypy --strict + tests, which include the
+#   wheel-in-bare-venv packaging check). Steps are spelled out with `uv run`
+#   rather than `make` because the Windows runners have no GNU make.
+# - T1: a compiler-enabled Linux job for the external oracles that need a C
+#   toolchain (the compiled dlpack.h ABI reference, design §9); it drives the
+#   same gate through `make gate-all` so the Makefile path stays exercised.
+#
+# GPU jobs are added when the first GPU-dependent phase lands.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    name: gate (${{ matrix.os }}, py${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.12", "3.14"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Sync dev dependencies
+        run: uv sync --group dev
+      - name: Format check
+        run: uv run ruff format --check .
+      - name: Lint
+        run: uv run ruff check .
+      - name: Typecheck (mypy --strict)
+        run: uv run mypy
+      - name: Tests (includes wheel-in-bare-venv packaging gate)
+        run: uv run pytest -q
+
+  gate-compiler:
+    name: gate (ubuntu-latest, compiler-enabled)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Show C toolchain
+        run: cc --version
+      - name: Cumulative gate
+        run: make gate-all
