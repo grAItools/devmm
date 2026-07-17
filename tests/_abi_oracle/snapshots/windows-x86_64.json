@@ -1,0 +1,11 @@
+{
+  "dlpack_version": "1.1",
+  "structs": {
+    "DLPackVersion": {"size": 8, "fields": {"major": 0, "minor": 4}},
+    "DLDevice": {"size": 8, "fields": {"device_type": 0, "device_id": 4}},
+    "DLDataType": {"size": 4, "fields": {"code": 0, "bits": 1, "lanes": 2}},
+    "DLTensor": {"size": 48, "fields": {"data": 0, "device": 8, "ndim": 16, "dtype": 20, "shape": 24, "strides": 32, "byte_offset": 40}},
+    "DLManagedTensor": {"size": 64, "fields": {"dl_tensor": 0, "manager_ctx": 48, "deleter": 56}},
+    "DLManagedTensorVersioned": {"size": 80, "fields": {"version": 0, "manager_ctx": 8, "deleter": 16, "flags": 24, "dl_tensor": 32}}
+  }
+}

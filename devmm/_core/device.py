@@ -26,6 +26,11 @@ class DeviceType(enum.IntEnum):
 # "1_0", and non-ASCII digits).
 _DEVICE_STRING = re.compile(r"(?P<name>[a-z_]+)(:(?P<index>[0-9]+))?")
 
+# DLPack transports the index as an int32_t (`DLDevice.device_id` in
+# dlpack.h), so an index a real device ordinal can't reach would be
+# silently truncated at export; reject it at construction instead.
+_MAX_INDEX = 2**31 - 1
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Device:
@@ -37,6 +42,13 @@ class Device:
 
     type: DeviceType
     index: int = 0
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.index <= _MAX_INDEX:
+            raise ValueError(
+                f"device index {self.index} out of range; DLPack device ids are "
+                f"int32, so the index must be in [0, {_MAX_INDEX}]"
+            )
 
     @classmethod
     def from_string(cls, s: str) -> Device:

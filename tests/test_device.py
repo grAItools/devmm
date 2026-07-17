@@ -103,6 +103,23 @@ def test_device_index_defaults_to_zero() -> None:
     assert Device(DeviceType.CPU) == Device(DeviceType.CPU, 0)
 
 
+def test_device_accepts_the_int32_maximum_index() -> None:
+    assert Device(DeviceType.CUDA, 2**31 - 1).index == 2**31 - 1
+
+
+@pytest.mark.parametrize("index", [-1, 2**31, 2**63])
+def test_device_rejects_indices_outside_int32(index: int) -> None:
+    # DLPack transports the index as an int32_t (`DLDevice.device_id`), so
+    # anything wider would be silently truncated at export.
+    with pytest.raises(ValueError):
+        Device(DeviceType.CUDA, index)
+
+
+def test_from_string_rejects_an_index_beyond_int32() -> None:
+    with pytest.raises(ValueError):
+        Device.from_string(f"cuda:{2**31}")
+
+
 def test_device_is_frozen() -> None:
     with pytest.raises(dataclasses.FrozenInstanceError):
         Device(DeviceType.CPU).index = 1  # type: ignore[misc]
