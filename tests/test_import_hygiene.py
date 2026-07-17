@@ -20,3 +20,17 @@ def test_core_import_does_not_import_numpy() -> None:
         "assert 'numpy' not in sys.modules, 'importing devmm core pulled in numpy'\n"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
+
+
+def test_integrations_import_pulls_in_no_third_party_library() -> None:
+    # The provide arrows mutate third-party state only through explicit
+    # install() calls, never as import side effects (design §6) — so
+    # importing the whole integrations package must not even import the
+    # third-party libraries.
+    code = (
+        "import sys\n"
+        "import devmm.integrations\n"
+        "for name in ('numpy', 'cupy', 'numba', 'rmm'):\n"
+        "    assert name not in sys.modules, f'importing devmm.integrations pulled in {name}'\n"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)

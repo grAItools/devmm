@@ -1,10 +1,11 @@
 """Public-API snapshot: `devmm`'s exported surface is frozen by this test.
 
 The snapshots map every name in `devmm.__all__` — and in the public
-`devmm.mrs.*` modules users import concrete memory resources from — to its
-call signature (for callables and classes) or its type name (for everything
-else). Growing or changing the surface requires a matching change in the
-design doc (`work/devmm-design.md`) before a snapshot is updated.
+`devmm.mrs.*` and `devmm.integrations.*` modules users import concrete
+memory resources and bridges from — to its call signature (for callables
+and classes) or its type name (for everything else). Growing or changing
+the surface requires a matching change in the design doc
+(`work/devmm-design.md`) before a snapshot is updated.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import enum
 import inspect
 
 import devmm
+import devmm.integrations
 import devmm.mrs.cpu
 import devmm.mrs.cuda
 import devmm.mrs.rocm
@@ -84,12 +86,19 @@ MRS_CPU_API_SNAPSHOT: dict[str, str] = {
         "(device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0), "
         "*, alignment: 'int' = 64) -> 'None'"
     ),
+    "NumpyHandlerMemoryResource": (
+        "(device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0)) -> 'None'"
+    ),
 }
 
 MRS_CUDA_API_SNAPSHOT: dict[str, str] = {
     "CudaRuntimeMemoryResource": (
         "(device: 'Device', *, async_alloc: \"bool | Literal['auto']\" = 'auto', "
         "api: 'GpuApi | None' = None) -> 'None'"
+    ),
+    "CupyAllocatorMemoryResource": (
+        "(allocator: 'Callable[[int], Any] | None' = None, "
+        "device: 'Device' = Device(type=<DeviceType.CUDA: 2>, index=0)) -> 'None'"
     ),
     "RmmMemoryResource": "(inner: 'RmmResourceLike', device: 'Device') -> 'None'",
 }
@@ -101,6 +110,27 @@ MRS_ROCM_API_SNAPSHOT: dict[str, str] = {
     ),
     "HipmmMemoryResource": "(inner: 'RmmResourceLike', device: 'Device') -> 'None'",
 }
+
+INTEGRATIONS_API_SNAPSHOT: dict[str, str] = {
+    "Installer": "(library: 'str', restore: 'Callable[[], None]') -> 'None'",
+    "cupy": "module",
+    "numba": "module",
+    "numpy": "module",
+    "rmm": "module",
+}
+
+_INSTALL_MR_SIGNATURE = "(mr: 'DeviceMemoryResource') -> 'Installer'"
+
+INTEGRATIONS_CUPY_API_SNAPSHOT: dict[str, str] = {"install": _INSTALL_MR_SIGNATURE}
+INTEGRATIONS_NUMPY_API_SNAPSHOT: dict[str, str] = {"install": _INSTALL_MR_SIGNATURE}
+INTEGRATIONS_RMM_API_SNAPSHOT: dict[str, str] = {"install": _INSTALL_MR_SIGNATURE}
+
+# `DevmmEMMPlugin` is built lazily on first access (it subclasses a Numba
+# base class), so this snapshot pins the name list and the eager `install`
+# signature; the lazy-class contract itself is pinned in
+# tests/test_integrations_numba.py.
+INTEGRATIONS_NUMBA_EXPORTS = ["DevmmEMMPlugin", "install"]
+INTEGRATIONS_NUMBA_INSTALL_SIGNATURE = "() -> 'Installer'"
 
 
 def _describe(obj: object) -> str:
@@ -152,3 +182,46 @@ def test_mrs_rocm_all_matches_snapshot() -> None:
 def test_mrs_rocm_member_signatures_match_snapshot() -> None:
     described = {name: _describe(getattr(devmm.mrs.rocm, name)) for name in devmm.mrs.rocm.__all__}
     assert described == MRS_ROCM_API_SNAPSHOT
+
+
+def test_integrations_all_matches_snapshot() -> None:
+    assert sorted(devmm.integrations.__all__) == sorted(INTEGRATIONS_API_SNAPSHOT)
+
+
+def test_integrations_member_signatures_match_snapshot() -> None:
+    described = {
+        name: _describe(getattr(devmm.integrations, name)) for name in devmm.integrations.__all__
+    }
+    assert described == INTEGRATIONS_API_SNAPSHOT
+
+
+def test_integrations_cupy_matches_snapshot() -> None:
+    assert sorted(devmm.integrations.cupy.__all__) == sorted(INTEGRATIONS_CUPY_API_SNAPSHOT)
+    described = {
+        name: _describe(getattr(devmm.integrations.cupy, name))
+        for name in devmm.integrations.cupy.__all__
+    }
+    assert described == INTEGRATIONS_CUPY_API_SNAPSHOT
+
+
+def test_integrations_numpy_matches_snapshot() -> None:
+    assert sorted(devmm.integrations.numpy.__all__) == sorted(INTEGRATIONS_NUMPY_API_SNAPSHOT)
+    described = {
+        name: _describe(getattr(devmm.integrations.numpy, name))
+        for name in devmm.integrations.numpy.__all__
+    }
+    assert described == INTEGRATIONS_NUMPY_API_SNAPSHOT
+
+
+def test_integrations_rmm_matches_snapshot() -> None:
+    assert sorted(devmm.integrations.rmm.__all__) == sorted(INTEGRATIONS_RMM_API_SNAPSHOT)
+    described = {
+        name: _describe(getattr(devmm.integrations.rmm, name))
+        for name in devmm.integrations.rmm.__all__
+    }
+    assert described == INTEGRATIONS_RMM_API_SNAPSHOT
+
+
+def test_integrations_numba_matches_snapshot() -> None:
+    assert sorted(devmm.integrations.numba.__all__) == sorted(INTEGRATIONS_NUMBA_EXPORTS)
+    assert _describe(devmm.integrations.numba.install) == INTEGRATIONS_NUMBA_INSTALL_SIGNATURE

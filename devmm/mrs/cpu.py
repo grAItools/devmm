@@ -6,6 +6,8 @@ storage is a `bytearray` pinned in place via a ctypes buffer export.
 the platform C runtime (`posix_memalign`/`free` on POSIX,
 `_aligned_malloc`/`_aligned_free` on Windows), tracking the allocating family
 per pointer because the Windows pair is not `free`-compatible.
+`NumpyHandlerMemoryResource` (experimental) allocates through NumPy's
+currently installed NEP-49 data-memory handler.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import sys
 import threading
 from typing import Protocol
 
+from devmm import _nep49
 from devmm._core.device import Device, DeviceType
 from devmm._core.memory_resource import DeviceMemoryResource
 from devmm._core.stream import Stream
@@ -23,6 +26,7 @@ from devmm._core.stream import Stream
 __all__ = [
     "BytearrayMemoryResource",
     "MallocMemoryResource",
+    "NumpyHandlerMemoryResource",
 ]
 
 _CPU_DEVICE = Device(DeviceType.CPU)
@@ -255,3 +259,84 @@ class MallocMemoryResource(DeviceMemoryResource):
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(device={self.device}, alignment={self._alignment})"
+
+
+class NumpyHandlerMemoryResource(DeviceMemoryResource):
+    """Experimental CPU MR over NumPy's NEP-49 data-memory handler
+    (design §5.1).
+
+    The current handler is captured once, at construction — the capsule is
+    held strongly so later handler changes cannot strand live allocations —
+    and every allocate/deallocate goes through its malloc/free callbacks, so
+    allocations inherit whatever the process configured for NumPy
+    (tracemalloc domain tracking, user handlers) and behave byte-identically
+    to NumPy array data. Experimental because it rides a C ABI reached
+    through NumPy's exported function table: construction is pinned to
+    `devmm._nep49.SUPPORTED_NUMPY_RANGE`.
+
+    The mirror direction — making NumPy allocate through a devmm MR — is
+    `devmm.integrations.numpy.install` (design §6); composing the two for
+    the same library is refused there.
+    """
+
+    def __init__(self, device: Device = _CPU_DEVICE) -> None:
+        _check_cpu_device(device, type(self).__name__)
+        self.device = device
+        api = _nep49.load_api()
+        # The capsule owns the handler struct the pointer view reads from.
+        self._capsule = api.get_handler()
+        self._handler = _nep49.handler_pointer(self._capsule).contents
+        if self._handler.version != _nep49.HANDLER_ABI_VERSION:
+            raise RuntimeError(
+                f"NumPy's current data-memory handler reports ABI version "
+                f"{self._handler.version}; devmm's mirror understands only "
+                f"version {_nep49.HANDLER_ABI_VERSION}"
+            )
+        self._lock = threading.Lock()
+        # ptr -> nbytes: deallocate validates the pointer and size before any
+        # handler call, so misuse surfaces as ValueError, never corruption.
+        self._live: dict[int, int] = {}
+
+    def allocate(self, nbytes: int, stream: Stream) -> int:
+        if nbytes < 0:
+            raise ValueError(f"cannot allocate a negative size ({nbytes} bytes)")
+        allocator = self._handler.allocator
+        # max(nbytes, 1): a zero-byte malloc may return NULL or a shared
+        # address; one byte buys a unique, freeable pointer.
+        ptr = allocator.malloc(allocator.ctx, max(nbytes, 1))
+        if not ptr:
+            raise MemoryError(f"failed to allocate {nbytes} bytes on {self.device} in {self!r}")
+        with self._lock:
+            self._live[ptr] = nbytes
+        return int(ptr)
+
+    def deallocate(self, ptr: int, nbytes: int, stream: Stream) -> None:
+        with self._lock:
+            recorded = self._live.get(ptr)
+            if recorded is None:
+                raise ValueError(
+                    f"pointer {ptr:#x} is not a live allocation of {self!r} "
+                    "(double-free, or a pointer this MR never returned)"
+                )
+            if nbytes != recorded:
+                # The allocation stays live: a size-mismatched free is caller
+                # confusion, and releasing anyway would turn it into a
+                # use-after-free elsewhere.
+                raise ValueError(
+                    f"size mismatch freeing pointer {ptr:#x} in {self!r}: "
+                    f"allocated {recorded} bytes, deallocate got {nbytes}"
+                )
+            del self._live[ptr]
+        allocator = self._handler.allocator
+        # The handler's free takes the allocated size, i.e. the bumped
+        # request `allocate` actually passed to malloc.
+        allocator.free(allocator.ctx, ptr, max(nbytes, 1))
+
+    def _debug_live_count(self) -> int:
+        """Testing hook: allocations currently tracked (0 == tables empty)."""
+        with self._lock:
+            return len(self._live)
+
+    def __repr__(self) -> str:
+        name = self._handler.name.decode(errors="replace")
+        return f"{type(self).__name__}(device={self.device}, handler={name!r})"
