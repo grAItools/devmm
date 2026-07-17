@@ -34,6 +34,7 @@ from devmm._core.registry import (
     using_memory_resource,
 )
 from devmm._core.stream import DEFAULT, LEGACY_DEFAULT, PER_THREAD_DEFAULT, Stream
+from devmm._core.tensor import Tensor, empty, empty_like
 
 __version__ = "0.1.0"
 
@@ -58,6 +59,9 @@ __all__ = [
     "RowMajor",
     "StatisticsAdaptor",
     "Stream",
+    "Tensor",
+    "empty",
+    "empty_like",
     "get_current_memory_resource",
     "set_current_memory_resource",
     "using_memory_resource",

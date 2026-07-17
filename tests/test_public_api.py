@@ -48,6 +48,23 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "RowMajor": "() -> None",
     "StatisticsAdaptor": "(upstream: 'DeviceMemoryResource') -> 'None'",
     "Stream": "()",
+    "Tensor": (
+        "(buffer: 'DeviceBuffer', dtype: 'DType', shape: 'tuple[int, ...]', "
+        "layout: 'Layout', *, offset: 'int' = 0, read_only: 'bool' = False) -> 'None'"
+    ),
+    "empty": (
+        "(shape: 'tuple[int, ...]', dtype: 'object', *, "
+        "device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0), "
+        "layout: 'Layout | LayoutPolicy' = DeviceOptimal(), "
+        "mr: 'DeviceMemoryResource | None' = None, "
+        "stream: 'Stream | None' = None) -> 'Tensor'"
+    ),
+    "empty_like": (
+        "(obj: 'Any', *, dtype: 'object | None' = None, device: 'Device | None' = None, "
+        "layout: 'Layout | LayoutPolicy' = DeviceOptimal(), "
+        "mr: 'DeviceMemoryResource | None' = None, "
+        "stream: 'Stream | None' = None) -> 'Tensor'"
+    ),
     "get_current_memory_resource": "(device: 'Device') -> 'DeviceMemoryResource'",
     "set_current_memory_resource": "(mr: 'DeviceMemoryResource') -> 'None'",
     "using_memory_resource": "(mr: 'DeviceMemoryResource') -> 'Iterator[DeviceMemoryResource]'",
