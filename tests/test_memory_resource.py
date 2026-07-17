@@ -110,6 +110,26 @@ def test_adaptor_forwards_nbytes_and_stream_exactly(factory: AdaptorFactory) -> 
     assert upstream.calls[1][3] is dealloc_stream
 
 
+def test_forwarding_base_passes_calls_through_unchanged() -> None:
+    # The base adaptor's default allocate/deallocate are the contract future
+    # adaptors inherit; the shipped adaptors all override them, so the base
+    # pass-through is pinned directly.
+    from devmm._core.memory_resource import _ForwardingAdaptor
+
+    class _PlainAdaptor(_ForwardingAdaptor):
+        pass
+
+    upstream = RecordingMemoryResource()
+    adaptor = _PlainAdaptor(upstream)
+    stream = CpuStream()
+    ptr = adaptor.allocate(77, stream)
+    adaptor.deallocate(ptr, 77, stream)
+    assert upstream.calls == [
+        ("allocate", ptr, 77, stream),
+        ("deallocate", ptr, 77, stream),
+    ]
+
+
 @pytest.mark.parametrize("factory", ADAPTORS, ids=ADAPTOR_IDS)
 def test_adaptor_exposes_and_delegates_to_upstream(factory: AdaptorFactory) -> None:
     upstream = _ProbeMemoryResource()

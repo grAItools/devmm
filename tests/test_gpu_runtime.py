@@ -9,11 +9,12 @@ and the runtime-backed default stream/default MR for `empty()` — no hardware.
 from __future__ import annotations
 
 import ctypes
+import ctypes.util
 import gc
 import sys
 import types
 from collections.abc import Iterator
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -646,3 +647,130 @@ class TestRuntimeDefaultPath:
         assert isinstance(mr, h.raw_mr_cls)
         assert mr.device == h.device0
         assert get_current_memory_resource(h.device0) is mr
+
+
+class _ScriptedSymbol:
+    """One CDLL symbol on `ScriptedNativeLib`: accepts the prototype
+    assignments, records calls, writes scripted out-params, returns the
+    scripted status/value."""
+
+    def __init__(self, lib: ScriptedNativeLib, name: str) -> None:
+        self._lib = lib
+        self._name = name
+        self.restype: Any = None
+        self.argtypes: Any = None
+
+    def __call__(self, *args: Any) -> Any:
+        self._lib.calls.append((self._name, args))
+        scripted_out = self._lib.out_values.get(self._name)
+        if scripted_out is not None:
+            value, index = scripted_out
+            args[index]._obj.value = value
+        return self._lib.returns.get(self._name, 0)
+
+
+class ScriptedNativeLib:
+    """A CDLL double whose every symbol resolves: `NativeGpuApi`'s ctypes
+    marshalling is driven end to end on T0 (out-params written through the
+    byref pointers, statuses returned as ints)."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Any, ...]]] = []
+        self.out_values: dict[str, tuple[int | None, int]] = {}
+        self.returns: dict[str, Any] = {}
+        self._functions: dict[str, _ScriptedSymbol] = {}
+
+    def __getattr__(self, name: str) -> _ScriptedSymbol:
+        if name.startswith("_"):
+            raise AttributeError(name)
+        return self._functions.setdefault(name, _ScriptedSymbol(self, name))
+
+
+class TestNativeApiMarshalling:
+    def test_every_method_marshals_statuses_and_out_params(self, h: Harness) -> None:
+        lib = ScriptedNativeLib()
+        symbols = h.platform.symbols
+        api = _gpulib.NativeGpuApi(cast(ctypes.CDLL, lib), h.platform)
+
+        lib.returns[symbols.get_error_string] = b"scripted failure"
+        assert api.get_error_string(7) == "scripted failure"
+        lib.returns[symbols.get_error_string] = None
+        assert api.get_error_string(7) == f"unknown {h.platform.error.error_label} error 7"
+
+        lib.out_values[symbols.get_device_count] = (3, 0)
+        assert api.get_device_count() == (0, 3)
+        lib.out_values[symbols.get_device] = (1, 0)
+        assert api.get_device() == (0, 1)
+        assert api.set_device(2) == 0
+        set_device_call = lib.calls[-1]
+        assert set_device_call == (symbols.set_device, (2,))
+        lib.out_values[symbols.get_device_attribute] = (5, 0)
+        assert api.get_device_attribute(87, 1) == (0, 5)
+        attribute_args = lib.calls[-1][1]
+        assert attribute_args[1:] == (87, 1)
+
+        lib.out_values[symbols.malloc] = (0x4000, 0)
+        assert api.malloc(64) == (0, 0x4000)
+        # ctypes surfaces a NULL c_void_p as None; the api maps it to 0.
+        lib.out_values[symbols.malloc] = (None, 0)
+        assert api.malloc(64) == (0, 0)
+        assert api.free(0x4000) == 0
+        free_args = lib.calls[-1][1]
+        assert free_args[0].value == 0x4000
+
+        lib.out_values[symbols.malloc_async] = (0x5000, 0)
+        assert api.malloc_async(64, 9) == (0, 0x5000)
+        lib.out_values[symbols.malloc_async] = (None, 0)
+        assert api.malloc_async(64, 9) == (0, 0)
+        assert api.free_async(0x5000, 9) == 0
+
+        lib.out_values[symbols.stream_create] = (0x11, 0)
+        assert api.stream_create() == (0, 0x11)
+        lib.out_values[symbols.stream_create] = (None, 0)
+        assert api.stream_create() == (0, 0)
+        assert api.stream_destroy(0x11) == 0
+        assert api.stream_synchronize(0x11) == 0
+
+        assert api.memcpy_async(0x6000, 0x7000, 33, 2, 0x11) == 0
+        name, args = lib.calls[-1]
+        assert name == symbols.memcpy_async
+        assert (args[0].value, args[1].value, args[2], args[3]) == (0x6000, 0x7000, 33, 2)
+        assert args[4].value == 0x11
+
+        lib.out_values[symbols.event_create_with_flags] = (0x21, 0)
+        assert api.event_create_with_flags(2) == (0, 0x21)
+        lib.out_values[symbols.event_create_with_flags] = (None, 0)
+        assert api.event_create_with_flags(2) == (0, 0)
+        assert api.event_record(0x21, 0x11) == 0
+        assert api.stream_wait_event(0x11, 0x21, 0) == 0
+        assert api.event_destroy(0x21) == 0
+
+        lib.returns[symbols.free] = 999
+        assert api.free(0x4000) == 999
+
+
+class TestNativeLibraryLoading:
+    def test_load_first_library_returns_none_when_nothing_loads(self) -> None:
+        assert _gpulib.load_first_library(("devmm_no_such_library_a", "devmm_no_such_b")) is None
+
+    def test_load_first_library_skips_misses_and_loads_the_first_hit(self) -> None:
+        libc = ctypes.util.find_library("c") or ctypes.util.find_library("msvcrt")
+        if libc is None:
+            pytest.skip("no loadable C runtime library name on this platform")
+        assert _gpulib.load_first_library(("devmm_no_such_library_a", libc)) is not None
+
+    def test_load_native_api_wraps_the_loaded_library(
+        self, h: Harness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        lib = ScriptedNativeLib()
+        monkeypatch.setattr(_gpulib, "load_first_library", lambda names: cast(ctypes.CDLL, lib))
+        api = _gpulib.load_native_api(h.platform)
+        assert isinstance(api, _gpulib.NativeGpuApi)
+        assert api.platform is h.platform
+
+    def test_load_native_api_without_a_library_raises_actionably(
+        self, h: Harness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(_gpulib, "load_first_library", lambda names: None)
+        with pytest.raises(RuntimeUnavailableError):
+            _gpulib.load_native_api(h.platform)

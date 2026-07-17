@@ -18,7 +18,7 @@ import pytest
 from devmm import Device
 from devmm._core.stream import CpuStream
 from devmm.mrs.cpu import BytearrayMemoryResource, MallocMemoryResource
-from devmm.testing.mr_conformance import MemoryResourceConformance
+from devmm.testing._mr_conformance import MemoryResourceConformance
 
 STREAM = CpuStream()
 

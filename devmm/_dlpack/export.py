@@ -88,7 +88,9 @@ def _release_managed(
     turns a post-finalization invocation into a no-op instead of a crash.
     """
     if not _is_initialized():
-        return
+        # Runs only during interpreter finalization; pinned by the shutdown
+        # subprocess tests, which coverage cannot observe.
+        return  # pragma: no cover
     ctx = managed_ptr.contents.manager_ctx
     if ctx:
         # Null before the decref: a protocol-violating second deleter call
@@ -226,7 +228,9 @@ def _validated_consumer_stream(device_type: DeviceType, stream: int | None) -> i
                 f"ROCm consumer streams are 0 (default) or a raw handle > 2, got {stream}"
             )
         return stream
-    raise BufferError(f"no stream validation table for device type {device_type!r}")
+    raise BufferError(  # pragma: no cover — defensive: every DeviceType member has a table above
+        f"no stream validation table for device type {device_type!r}"
+    )
 
 
 def _fill_dl_tensor(dl: DLTensor, tensor: Tensor, shape_address: int, ndim: int) -> None:
@@ -323,7 +327,7 @@ def to_capsule(
     _py_inc_ref(holder)
     try:
         capsule: CapsuleType = _capsule_new(block_address, name, destructor)
-    except BaseException:
+    except BaseException:  # pragma: no cover — PyCapsule_New fails only on memory exhaustion
         _py_dec_ref(holder)
         raise
     return capsule

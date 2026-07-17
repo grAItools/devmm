@@ -128,6 +128,23 @@ def test_aligned_pitch_divisible_and_padding_minimal(
     assert layout.required_nbytes % base == 0
 
 
+def test_unpadded_policies_declare_no_alignment_demands() -> None:
+    # No-padding policies report 1 for both upper bounds (§3.6): they never
+    # ask anything of the base pointer or the line pitch.
+    for policy in (RowMajor(), ColMajor(), Permuted((1, 0))):
+        assert policy.base_alignment == 1
+        assert policy.unit_stride_alignment == 1
+
+
+def test_device_optimal_declares_the_gpu_maxima_as_upper_bounds() -> None:
+    # Upper-bound semantics (§3.6): a dispatching policy's alignment
+    # properties report the maximum it may request for any device — for
+    # DeviceOptimal, the GPU values.
+    policy = DeviceOptimal()
+    assert policy.base_alignment == 256
+    assert policy.unit_stride_alignment == 128
+
+
 def test_device_optimal_dispatches_per_device() -> None:
     host = DeviceOptimal()((3, 5), float32, CPU)
     assert host.base_alignment == 64
@@ -252,6 +269,9 @@ def test_validate_accepts_hand_built_padded_f_order() -> None:
         (Layout((0, 1), (4, 1), 32, 1), (2, -4), 4),
         # Non-positive base alignment.
         (Layout((0, 1), (4, 1), 32, 0), (2, 4), 4),
+        # Non-positive / non-integer itemsize.
+        (Layout((0, 1), (4, 1), 32, 1), (2, 4), 0),
+        (Layout((0, 1), (4, 1), 32, 1), (2, 4), 4.0),
     ],
 )
 def test_validate_rejects(layout: Layout, shape: tuple[int, ...], itemsize: int) -> None:

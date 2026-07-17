@@ -8,19 +8,33 @@ after uninstall, the direct-cycle guard and the supported-range guard.
 
 from __future__ import annotations
 
+import contextlib
 import ctypes
 import gc
 import importlib
+import logging
 import sys
+from collections.abc import Iterator
+from typing import Any
 
 import pytest
 
-from devmm import Device, LimitingAdaptor, StatisticsAdaptor, _nep49
+from devmm import (
+    CallbackMemoryResource,
+    Device,
+    DeviceMemoryResource,
+    LimitingAdaptor,
+    StatisticsAdaptor,
+    Stream,
+    _nep49,
+)
 from devmm.integrations import numpy as integrations_numpy
 from devmm.mrs.cpu import MallocMemoryResource, NumpyHandlerMemoryResource
 from devmm.testing import RecordingMemoryResource
 
 np = pytest.importorskip("numpy")
+
+_CPU = Device.from_string("cpu")
 
 _POINTER = ctypes.sizeof(ctypes.c_void_p)
 
@@ -237,3 +251,87 @@ class TestRefusals:
         with pytest.raises(RuntimeError, match=version.replace(".", r"\.")):
             integrations_numpy.install(_stats())
         assert _get_handler_name() == prior
+
+
+class TestThunkFailSafety:
+    """The module-global allocator thunks are C entry points: a Python
+    exception cannot cross into NumPy, so unknown contexts, unknown pointers
+    and failing MRs must degrade to NULL returns / logged no-ops."""
+
+    @contextlib.contextmanager
+    def _registered(self, mr: DeviceMemoryResource) -> Iterator[Any]:
+        state = integrations_numpy._HandlerState(mr)
+        integrations_numpy._LIVE[state.address] = state
+        try:
+            yield state
+        finally:
+            integrations_numpy._LIVE.pop(state.address, None)
+
+    def test_thunks_with_an_unknown_ctx_fail_safe(self) -> None:
+        assert integrations_numpy._malloc_impl(0xDEAD, 16) == 0
+        assert integrations_numpy._calloc_impl(0xDEAD, 4, 4) == 0
+        assert integrations_numpy._realloc_impl(0xDEAD, 0x1234, 16) == 0
+        integrations_numpy._free_impl(0xDEAD, 0x1234, 16)
+
+    def test_free_of_a_null_or_unknown_pointer_is_a_logged_noop(self) -> None:
+        with self._registered(MallocMemoryResource()) as state:
+            integrations_numpy._free_impl(state.address, 0, 8)
+            integrations_numpy._free_impl(state.address, 0x999, 8)
+            assert state.sizes == {}
+
+    def test_realloc_of_a_null_pointer_is_a_plain_allocation(self) -> None:
+        with self._registered(MallocMemoryResource()) as state:
+            ptr = integrations_numpy._realloc_impl(state.address, 0, 32)
+            assert ptr != 0
+            assert state.sizes == {ptr: 32}
+            integrations_numpy._free_impl(state.address, ptr, 32)
+            assert state.sizes == {}
+
+    def test_realloc_of_an_unknown_pointer_returns_null(self) -> None:
+        with self._registered(MallocMemoryResource()) as state:
+            assert integrations_numpy._realloc_impl(state.address, 0x999, 32) == 0
+
+    def test_failed_realloc_keeps_the_old_allocation_valid(self) -> None:
+        with self._registered(LimitingAdaptor(MallocMemoryResource(), limit_bytes=64)) as state:
+            ptr = integrations_numpy._malloc_impl(state.address, 48)
+            assert ptr != 0
+            # Growing to 128 exceeds the 64-byte budget: C realloc semantics
+            # say fail with NULL and leave the old allocation live.
+            assert integrations_numpy._realloc_impl(state.address, ptr, 128) == 0
+            assert state.sizes == {ptr: 48}
+            integrations_numpy._free_impl(state.address, ptr, 48)
+
+    def test_an_unexpected_allocate_exception_is_logged_and_returns_null(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        def broken_alloc(nbytes: int, stream: Stream) -> int:
+            raise RuntimeError("boom")
+
+        mr = CallbackMemoryResource(broken_alloc, lambda p, n, s: None, _CPU)
+        with (
+            self._registered(mr) as state,
+            caplog.at_level(logging.ERROR, logger="devmm.mr"),
+        ):
+            assert integrations_numpy._malloc_impl(state.address, 16) == 0
+        assert any("allocating" in record.message for record in caplog.records)
+
+    def test_a_deallocate_exception_is_logged_and_swallowed(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        def broken_dealloc(ptr: int, nbytes: int, stream: Stream) -> None:
+            raise RuntimeError("boom")
+
+        # The thunks never dereference what the MR returns, so a fake
+        # pointer is safe here.
+        mr = CallbackMemoryResource(lambda n, s: 0x1000, broken_dealloc, _CPU)
+        with (
+            self._registered(mr) as state,
+            caplog.at_level(logging.ERROR, logger="devmm.mr"),
+        ):
+            ptr = integrations_numpy._malloc_impl(state.address, 16)
+            integrations_numpy._free_impl(state.address, ptr, 16)
+            assert state.sizes == {}
+        assert any("freeing" in record.message for record in caplog.records)
+
+    def test_destroying_a_null_capsule_pointer_is_a_noop(self) -> None:
+        integrations_numpy._destroy_handler_capsule(None)

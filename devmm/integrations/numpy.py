@@ -198,7 +198,7 @@ def _new_handler_capsule(state: _HandlerState) -> Any:
         return _nep49.capsule_new(
             state.address, _nep49.HANDLER_CAPSULE_NAME, _HANDLER_CAPSULE_DESTRUCTOR
         )
-    except BaseException:
+    except BaseException:  # pragma: no cover — PyCapsule_New fails only on memory exhaustion
         _LIVE.pop(state.address, None)
         raise
 

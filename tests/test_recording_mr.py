@@ -96,6 +96,11 @@ def test_negative_allocation_size_is_rejected() -> None:
         RecordingMemoryResource().allocate(-1, STREAM)
 
 
+def test_non_positive_guaranteed_alignment_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        RecordingMemoryResource(guaranteed_alignment=0)
+
+
 def test_live_tracks_outstanding_allocations() -> None:
     mr = RecordingMemoryResource()
     first = mr.allocate(10, STREAM)

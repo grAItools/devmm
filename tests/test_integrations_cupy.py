@@ -9,12 +9,14 @@ the MR when the consumer drops it.
 from __future__ import annotations
 
 import gc
+import sys
 import weakref
 
 import pytest
 
 from devmm import Device, StatisticsAdaptor
 from devmm._core.buffer import DeviceBuffer
+from devmm._runtimes.base import RuntimeUnavailableError
 from devmm.integrations import cupy as integrations_cupy
 from devmm.mrs.cuda import CupyAllocatorMemoryResource
 from devmm.testing import RecordingMemoryResource
@@ -138,3 +140,16 @@ class TestRefusals:
     def test_non_cuda_mrs_are_rejected_before_importing_cupy(self) -> None:
         with pytest.raises(ValueError, match="cuda"):
             integrations_cupy.install(RecordingMemoryResource())
+
+
+class TestCupyModuleSeam:
+    def test_returns_the_importable_cupy_module(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        sentinel = FakeCupy()
+        monkeypatch.setitem(sys.modules, "cupy", sentinel)
+        assert integrations_cupy._cupy_module() is sentinel
+
+    def test_missing_cupy_raises_runtime_unavailable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # A None entry makes `import cupy` fail without uninstalling it.
+        monkeypatch.setitem(sys.modules, "cupy", None)
+        with pytest.raises(RuntimeUnavailableError, match=r"devmm\[cupy\]"):
+            integrations_cupy._cupy_module()

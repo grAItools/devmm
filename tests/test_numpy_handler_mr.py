@@ -8,11 +8,13 @@ range guard.
 from __future__ import annotations
 
 import ctypes
+import sys
 
 import pytest
 
-from devmm import Device, StatisticsAdaptor
+from devmm import Device, StatisticsAdaptor, _nep49
 from devmm._core.stream import CpuStream
+from devmm._runtimes.base import RuntimeUnavailableError
 from devmm.integrations import numpy as integrations_numpy
 from devmm.mrs.cpu import MallocMemoryResource, NumpyHandlerMemoryResource
 
@@ -94,6 +96,14 @@ class TestConformance:
         with pytest.raises(ValueError, match="-1"):
             mr.allocate(-1, _STREAM)
 
+    def test_allocation_failure_raises_memory_error_with_context(self) -> None:
+        mr = NumpyHandlerMemoryResource()
+        # 2**61 bytes exceeds any 64-bit machine's address space, so the
+        # captured handler's malloc must fail deterministically.
+        with pytest.raises(MemoryError, match="cpu:0"):
+            mr.allocate(1 << 61, _STREAM)
+        assert mr._debug_live_count() == 0
+
 
 class TestContracts:
     def test_capability_probes(self) -> None:
@@ -143,3 +153,23 @@ class TestRangeGuard:
         monkeypatch.setattr(np, "__version__", version)
         with pytest.raises(RuntimeError, match=version.replace(".", r"\.")):
             NumpyHandlerMemoryResource()
+
+    def test_unparseable_numpy_version_raises(self) -> None:
+        with pytest.raises(RuntimeError, match="garbage"):
+            _nep49.parsed_version("garbage")
+
+    def test_missing_numpy_raises_runtime_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # A None entry makes `import numpy` fail without uninstalling it.
+        monkeypatch.setitem(sys.modules, "numpy", None)
+        with pytest.raises(RuntimeUnavailableError, match="numpy"):
+            _nep49._numpy_module()
+
+    def test_missing_multiarray_umath_extension_raises(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setitem(sys.modules, "numpy._core._multiarray_umath", None)
+        monkeypatch.setitem(sys.modules, "numpy.core._multiarray_umath", None)
+        with pytest.raises(RuntimeError, match="_multiarray_umath"):
+            _nep49._multiarray_umath(np)

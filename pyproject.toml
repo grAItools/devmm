@@ -82,6 +82,23 @@ select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PIE"]
 "**/__init__.py" = ["F401"]
 
 # ---------------------------------------------------------------------------
+# Coverage — release-gate thresholds run through `make coverage` (>= 90%
+# overall, >= 95% on devmm/_core + devmm/_dlpack, measured on the Linux CI
+# leg). Everything left uncovered is excluded below or carries an inline
+# reasoned `# pragma: no cover`.
+# ---------------------------------------------------------------------------
+[tool.coverage.report]
+exclude_also = [
+    # Debug formatting only; free to change, asserted nowhere.
+    "def __repr__",
+    # Abstract seams overridden by each platform binding.
+    "raise NotImplementedError",
+    # Windows-only branches; exercised on the Windows CI leg, which is not
+    # the coverage-measuring job.
+    'if sys\.platform == "win32":',
+]
+
+# ---------------------------------------------------------------------------
 # Pytest
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]

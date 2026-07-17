@@ -317,6 +317,14 @@ class TestRmmWrappers:
             mr.deallocate(ptr, 64, stream)
         assert inner.calls == calls_before
 
+    def test_negative_allocation_size_is_rejected_without_forwarding(self, h: Harness) -> None:
+        inner = FakeRmmMemoryResource()
+        mr = _wrapper(h, inner)
+        stream = h.stream_cls(h.device0, 0, h.api())
+        with pytest.raises(ValueError, match="-1"):
+            mr.allocate(-1, stream)
+        assert inner.calls == []
+
     def test_size_mismatched_free_raises_and_keeps_the_allocation_live(self, h: Harness) -> None:
         inner = FakeRmmMemoryResource()
         mr = _wrapper(h, inner)

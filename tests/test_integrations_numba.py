@@ -72,6 +72,11 @@ class TestLazyExports:
 
 
 class TestPlugin:
+    def test_initialize_needs_no_native_setup(self, fake_numba: FakeNumbaCuda) -> None:
+        # The registry resolves the MR lazily per allocation, so Numba's
+        # initialize hook has nothing to prepare.
+        assert integrations_numba._plugin_class()(context=None).initialize() is None
+
     def test_interface_version_is_1(self, fake_numba: FakeNumbaCuda) -> None:
         plugin = integrations_numba._plugin_class()(context=None)
         assert plugin.interface_version == 1

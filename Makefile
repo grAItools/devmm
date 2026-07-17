@@ -1,4 +1,5 @@
-.PHONY: help test test-all lint typecheck fmt fmt-check verify gate-all dev clean
+.PHONY: help test test-all test-devmode lint typecheck fmt fmt-check coverage verify gate-all \
+	release-gate dev clean
 
 help:  ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
@@ -11,6 +12,18 @@ test:  ## Run fast unit tests
 
 test-all: test  ## Run the full suite (override to add integration/e2e)
 	@echo "test-all: extend this target with integration suites as needed"
+
+# The refleak harness and the shutdown subprocess tests run with dev-mode
+# allocator/warning checks and faulthandler enabled (see docs/testing.md).
+test-devmode:  ## Run the suite under PYTHONDEVMODE=1 with faulthandler
+	PYTHONDEVMODE=1 PYTHONFAULTHANDLER=1 uv run --extra test pytest -q
+
+# Coverage thresholds (see docs/testing.md): >= 90% overall, >= 95% on the
+# core domain model + DLPack layer. Residual uncovered lines carry reasoned
+# `# pragma: no cover` / exclusions (see pyproject.toml).
+coverage:  ## Enforce the coverage thresholds
+	uv run --extra test pytest -q --cov=devmm --cov-report=term-missing --cov-fail-under=90
+	uv run --extra test pytest -q --cov=devmm/_core --cov=devmm/_dlpack --cov-fail-under=95
 
 lint:  ## Run static checks (does not auto-fix)
 	uv run ruff check .
@@ -35,6 +48,12 @@ gate-%: verify
 
 gate-all: verify  ## Cumulative gate: lint + mypy --strict + tests + packaging
 	@echo "gate-all: green"
+
+# Every release check that runs without GPU hardware (see docs/testing.md);
+# the GPU suites run on their own runners
+# (docs/adr/0003-gpu-suite-waiver-for-0.1.0.md).
+release-gate: verify coverage test-devmode  ## Release gate: verify + coverage + dev-mode suite
+	@echo "release-gate: green"
 
 dev:  ## Run the local dev workflow (override per-project)
 	@echo "dev: override this target to start your dev server / watcher"

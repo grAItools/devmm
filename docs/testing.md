@@ -34,11 +34,27 @@ GPU** — that is the backbone of the suite (design §9).
 
 ## Coverage targets
 
-No numeric gate. The bar is behavioural: every shipped `LayoutPolicy`, every CPU
-MR, and **both** DLPack capsule variants (versioned + legacy) have round-trip
+The behavioural bar comes first: every shipped `LayoutPolicy`, every CPU MR,
+and **both** DLPack capsule variants (versioned + legacy) have round-trip
 coverage, and every `__dlpack__` refusal path (the `BufferError` cases) is
-asserted. GPU paths are covered by the mock runtime on CPU CI and by the smoke
-jobs on GPU CI.
+asserted. GPU paths are covered by the fake-api suites on CPU CI and by the
+smoke jobs on GPU CI.
+
+The release gate adds numeric thresholds (`make coverage`, enforced by the
+`gate-coverage` CI leg on Linux): **≥ 90% overall** and **≥ 95% on
+`devmm/_core` + `devmm/_dlpack`**. Anything left uncovered must carry a
+reasoned `# pragma: no cover` or match a documented exclusion in
+`pyproject.toml` (`[tool.coverage.report]`) — platform-only branches, debug
+`__repr__`s, abstract seams. Never add a pragma to dodge writing a feasible
+test.
+
+The release gate also runs the whole suite under `PYTHONDEVMODE=1` with
+`faulthandler` enabled (`make test-devmode`, the `gate-devmode` CI leg), so
+the refleak harness and the shutdown subprocess tests execute with dev-mode
+allocator and warning checks on.
+
+Docs are executed as tests: every Python code block in `README.md` and
+`docs/api.md` is a doctest session run by `tests/test_docs.py`.
 
 ## Determinism
 

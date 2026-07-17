@@ -164,7 +164,7 @@ class _PosixFamily:
         self._free(ctypes.c_void_p(ptr))
 
 
-class _WindowsFamily:
+class _WindowsFamily:  # pragma: no cover — Windows-only; exercised on the Windows CI leg
     """`_aligned_malloc`/`_aligned_free` from the Microsoft C runtime."""
 
     name = "windows"
@@ -287,7 +287,9 @@ class NumpyHandlerMemoryResource(DeviceMemoryResource):
         self._capsule = api.get_handler()
         self._handler = _nep49.handler_pointer(self._capsule).contents
         if self._handler.version != _nep49.HANDLER_ABI_VERSION:
-            raise RuntimeError(
+            # Reachable only when a future NumPy ships a new NEP-49 ABI;
+            # the supported-range guard normally refuses it first.
+            raise RuntimeError(  # pragma: no cover
                 f"NumPy's current data-memory handler reports ABI version "
                 f"{self._handler.version}; devmm's mirror understands only "
                 f"version {_nep49.HANDLER_ABI_VERSION}"

@@ -7,8 +7,12 @@
 # - T1: a compiler-enabled Linux job for the external oracles that need a C
 #   toolchain (the compiled dlpack.h ABI reference, design §9); it drives the
 #   same gate through `make gate-all` so the Makefile path stays exercised.
+# - Release-gate legs (implementation plan, Phase 12): coverage thresholds
+#   and the PYTHONDEVMODE=1 + faulthandler run, both on Linux.
 #
-# GPU jobs are added when the first GPU-dependent phase lands.
+# GPU (T2/T3) jobs are pending dedicated runners; the suites exist under the
+# `gpu_cuda`/`gpu_rocm` markers and are opt-in via DEVMM_GPU (see
+# docs/adr/0003-gpu-suite-waiver-for-0.1.0.md).
 name: CI
 
 on:
@@ -53,3 +57,25 @@ jobs:
         run: cc --version
       - name: Cumulative gate
         run: make gate-all
+
+  gate-coverage:
+    name: coverage thresholds (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Coverage (>=90% overall, >=95% _core+_dlpack)
+        run: make coverage
+
+  gate-devmode:
+    name: suite under PYTHONDEVMODE=1 (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Tests with dev-mode checks and faulthandler
+        run: make test-devmode

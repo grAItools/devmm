@@ -18,6 +18,7 @@ import devmm.integrations
 import devmm.mrs.cpu
 import devmm.mrs.cuda
 import devmm.mrs.rocm
+import devmm.testing
 
 PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "Aligned": (
@@ -111,6 +112,23 @@ MRS_ROCM_API_SNAPSHOT: dict[str, str] = {
     "HipmmMemoryResource": "(inner: 'RmmResourceLike', device: 'Device') -> 'None'",
 }
 
+TESTING_API_SNAPSHOT: dict[str, str] = {
+    "RecordingMemoryResource": (
+        "(device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0), "
+        "*, stream_ordered: 'bool' = True, guaranteed_alignment: 'int' = 256) -> 'None'"
+    ),
+    # An exception class over AssertionError's C-level __init__ has no
+    # inspectable Python signature.
+    "RecordingMisuseError": "<uninspectable callable>",
+    "dlpack_conformance": "(device: 'Device') -> 'None'",
+    "mr_conformance": (
+        "(mr_factory: 'Callable[..., DeviceMemoryResource]', "
+        "*, stream_factory: 'Callable[[], Stream] | None' = None, "
+        "write: 'Callable[[int, bytes], None] | None' = None, "
+        "read: 'Callable[[int, int], bytes] | None' = None) -> 'None'"
+    ),
+}
+
 INTEGRATIONS_API_SNAPSHOT: dict[str, str] = {
     "Installer": "(library: 'str', restore: 'Callable[[], None]') -> 'None'",
     "cupy": "module",
@@ -182,6 +200,15 @@ def test_mrs_rocm_all_matches_snapshot() -> None:
 def test_mrs_rocm_member_signatures_match_snapshot() -> None:
     described = {name: _describe(getattr(devmm.mrs.rocm, name)) for name in devmm.mrs.rocm.__all__}
     assert described == MRS_ROCM_API_SNAPSHOT
+
+
+def test_testing_all_matches_snapshot() -> None:
+    assert sorted(devmm.testing.__all__) == sorted(TESTING_API_SNAPSHOT)
+
+
+def test_testing_member_signatures_match_snapshot() -> None:
+    described = {name: _describe(getattr(devmm.testing, name)) for name in devmm.testing.__all__}
+    assert described == TESTING_API_SNAPSHOT
 
 
 def test_integrations_all_matches_snapshot() -> None:
