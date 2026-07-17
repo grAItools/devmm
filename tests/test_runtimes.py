@@ -49,7 +49,7 @@ def _isolated_discovery(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
     The GPU built-ins probe the host's driver libraries, so leaving them in
     would make these assertions host-dependent; their discovery wiring has
-    its own suites (`tests/test_cuda_runtime.py`).
+    its own suites (`tests/test_gpu_runtime.py`).
     """
     monkeypatch.delenv("DEVMM_RUNTIME", raising=False)
     monkeypatch.setattr(
@@ -144,7 +144,8 @@ class TestDiscovery:
             "names = devmm.runtime_names()\n"
             "assert 'cpu' in names, names\n"
             "heavy = [m for m in ('devmm._runtimes.cpu', 'devmm.mrs.cpu',"
-            " 'devmm._runtimes.cuda', 'devmm.mrs.cuda', 'numpy')"
+            " 'devmm._runtimes.cuda', 'devmm.mrs.cuda', 'devmm._runtimes.rocm',"
+            " 'devmm.mrs.rocm', 'devmm._runtimes._gpulib', 'numpy')"
             " if m in sys.modules]\n"
             "assert not heavy, f'runtime_names() imported {heavy}'\n"
         )

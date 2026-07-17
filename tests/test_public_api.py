@@ -15,6 +15,7 @@ import inspect
 import devmm
 import devmm.mrs.cpu
 import devmm.mrs.cuda
+import devmm.mrs.rocm
 
 PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "Aligned": (
@@ -88,9 +89,17 @@ MRS_CPU_API_SNAPSHOT: dict[str, str] = {
 MRS_CUDA_API_SNAPSHOT: dict[str, str] = {
     "CudaRuntimeMemoryResource": (
         "(device: 'Device', *, async_alloc: \"bool | Literal['auto']\" = 'auto', "
-        "api: 'CudartApi | None' = None) -> 'None'"
+        "api: 'GpuApi | None' = None) -> 'None'"
     ),
     "RmmMemoryResource": "(inner: 'RmmResourceLike', device: 'Device') -> 'None'",
+}
+
+MRS_ROCM_API_SNAPSHOT: dict[str, str] = {
+    "HipRuntimeMemoryResource": (
+        "(device: 'Device', *, async_alloc: \"bool | Literal['auto']\" = 'auto', "
+        "api: 'GpuApi | None' = None) -> 'None'"
+    ),
+    "HipmmMemoryResource": "(inner: 'RmmResourceLike', device: 'Device') -> 'None'",
 }
 
 
@@ -134,3 +143,12 @@ def test_mrs_cuda_all_matches_snapshot() -> None:
 def test_mrs_cuda_member_signatures_match_snapshot() -> None:
     described = {name: _describe(getattr(devmm.mrs.cuda, name)) for name in devmm.mrs.cuda.__all__}
     assert described == MRS_CUDA_API_SNAPSHOT
+
+
+def test_mrs_rocm_all_matches_snapshot() -> None:
+    assert sorted(devmm.mrs.rocm.__all__) == sorted(MRS_ROCM_API_SNAPSHOT)
+
+
+def test_mrs_rocm_member_signatures_match_snapshot() -> None:
+    described = {name: _describe(getattr(devmm.mrs.rocm, name)) for name in devmm.mrs.rocm.__all__}
+    assert described == MRS_ROCM_API_SNAPSHOT

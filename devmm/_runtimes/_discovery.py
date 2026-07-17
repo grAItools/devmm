@@ -71,10 +71,35 @@ def _load_cuda() -> DeviceRuntime:
     return CudaRuntime()
 
 
+# libamdhip64 is both the driver-facing and the runtime library on ROCm, so
+# the probe and the loader (`devmm._runtimes.rocm`) try the same spellings —
+# duplicated here because probes must not import the runtime module (§4.1).
+_ROCM_DRIVER_LIBRARIES: tuple[str, ...] = (
+    ("amdhip64_7.dll", "amdhip64_6.dll", "amdhip64.dll")
+    if sys.platform == "win32"
+    else ("libamdhip64.so.7", "libamdhip64.so.6", "libamdhip64.so.5", "libamdhip64.so")
+)
+
+
+def _rocm_probe() -> bool:
+    # Platform-keyed probe (design §4.2): is the AMD HIP runtime loadable?
+    # Keying off the platform library — never the ambiguous `rmm` module
+    # name hipMM also installs under — is what disambiguates the two GPU
+    # stacks.
+    return any(_dlopen(name) is not None for name in _ROCM_DRIVER_LIBRARIES)
+
+
+def _load_rocm() -> DeviceRuntime:
+    from devmm._runtimes.rocm import HipRuntime
+
+    return HipRuntime()
+
+
 # Built-in runtimes, in preference order; entry points are appended after.
 _BUILTIN_SPECS: tuple[_RuntimeSpec, ...] = (
     _RuntimeSpec("cpu", _cpu_probe, _load_cpu),
     _RuntimeSpec("cuda", _cuda_probe, _load_cuda),
+    _RuntimeSpec("rocm", _rocm_probe, _load_rocm),
 )
 
 
