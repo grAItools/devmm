@@ -18,19 +18,33 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
         "(inner: 'LayoutPolicy', unit_stride_alignment: 'int' = 128, "
         "base_alignment: 'int' = 256) -> None"
     ),
+    "CallbackMemoryResource": (
+        "(alloc_fn: 'Callable[[int, Stream], int]', "
+        "dealloc_fn: 'Callable[[int, int, Stream], None]', device: 'Device') -> 'None'"
+    ),
     "ColMajor": "() -> None",
+    "DEFAULT": "StreamSentinel",
     "DType": "(code: 'int', bits: 'int', lanes: 'int' = 1) -> None",
     "Device": "(type: 'DeviceType', index: 'int' = 0) -> None",
+    "DeviceMemoryResource": "()",
     "DeviceOptimal": "() -> None",
     "DeviceType": "enum: CPU=1, CUDA=2, CUDA_HOST=3, ROCM=10, ROCM_HOST=11, CUDA_MANAGED=13",
+    "LEGACY_DEFAULT": "StreamSentinel",
     "Layout": (
         "(permutation: 'tuple[int, ...]', strides: 'tuple[int, ...]', "
         "required_nbytes: 'int', base_alignment: 'int', "
         "policy: 'LayoutPolicy | None' = None) -> None"
     ),
     "LayoutPolicy": "()",
+    "LimitingAdaptor": "(upstream: 'DeviceMemoryResource', limit_bytes: 'int') -> 'None'",
+    "LoggingAdaptor": (
+        "(upstream: 'DeviceMemoryResource', logger: 'logging.Logger | None' = None) -> 'None'"
+    ),
+    "PER_THREAD_DEFAULT": "StreamSentinel",
     "Permuted": "(permutation: 'tuple[int, ...]') -> None",
     "RowMajor": "() -> None",
+    "StatisticsAdaptor": "(upstream: 'DeviceMemoryResource') -> 'None'",
+    "Stream": "()",
 }
 
 

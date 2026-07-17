@@ -6,6 +6,8 @@ import os
 
 import pytest
 
+from devmm.testing import RecordingMemoryResource
+
 # Marker name -> (DEVMM_GPU opt-in value, description). GPU tests never run by
 # default: a silently-passing GPU test on a CPU-only box would be a false green.
 _GPU_MARKERS: dict[str, tuple[str, str]] = {
@@ -28,11 +30,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 
 
 @pytest.fixture
-def recording_mr() -> object:
-    """The recording memory resource used to assert stream-ordering contracts
-    without hardware (design §9).
-
-    `devmm.testing` does not provide `RecordingMemoryResource` yet, so tests
-    requesting this fixture are skipped rather than erroring at collection.
-    """
-    pytest.skip("devmm.testing.RecordingMemoryResource is not implemented")
+def recording_mr() -> RecordingMemoryResource:
+    """A fresh recording MR per test: asserts allocate/deallocate pairing and
+    stream-ordering contracts without hardware (design §9)."""
+    return RecordingMemoryResource()

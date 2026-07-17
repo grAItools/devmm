@@ -20,18 +20,35 @@ from devmm._core.layout import (
     Permuted,
     RowMajor,
 )
+from devmm._core.memory_resource import (
+    CallbackMemoryResource,
+    DeviceMemoryResource,
+    LimitingAdaptor,
+    LoggingAdaptor,
+    StatisticsAdaptor,
+)
+from devmm._core.stream import DEFAULT, LEGACY_DEFAULT, PER_THREAD_DEFAULT, Stream
 
 __version__ = "0.1.0"
 
 __all__ = [
+    "DEFAULT",
+    "LEGACY_DEFAULT",
+    "PER_THREAD_DEFAULT",
     "Aligned",
+    "CallbackMemoryResource",
     "ColMajor",
     "DType",
     "Device",
+    "DeviceMemoryResource",
     "DeviceOptimal",
     "DeviceType",
     "Layout",
     "LayoutPolicy",
+    "LimitingAdaptor",
+    "LoggingAdaptor",
     "Permuted",
     "RowMajor",
+    "StatisticsAdaptor",
+    "Stream",
 ]
