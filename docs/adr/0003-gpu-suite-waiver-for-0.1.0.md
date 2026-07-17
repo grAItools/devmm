@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — requires grAItools maintainer sign-off before tagging `v0.1.0`.
+Accepted — signed off by the grAItools maintainer on 2026-07-17, explicitly
+including the extension of the waiver to T2 (CUDA) beyond the p12 spec's
+T3-only waiver clause.
 
 ## Context
 
