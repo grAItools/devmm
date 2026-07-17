@@ -14,9 +14,23 @@ import inspect
 import devmm
 
 PUBLIC_API_SNAPSHOT: dict[str, str] = {
+    "Aligned": (
+        "(inner: 'LayoutPolicy', unit_stride_alignment: 'int' = 128, "
+        "base_alignment: 'int' = 256) -> None"
+    ),
+    "ColMajor": "() -> None",
     "DType": "(code: 'int', bits: 'int', lanes: 'int' = 1) -> None",
     "Device": "(type: 'DeviceType', index: 'int' = 0) -> None",
+    "DeviceOptimal": "() -> None",
     "DeviceType": "enum: CPU=1, CUDA=2, CUDA_HOST=3, ROCM=10, ROCM_HOST=11, CUDA_MANAGED=13",
+    "Layout": (
+        "(permutation: 'tuple[int, ...]', strides: 'tuple[int, ...]', "
+        "required_nbytes: 'int', base_alignment: 'int', "
+        "policy: 'LayoutPolicy | None' = None) -> None"
+    ),
+    "LayoutPolicy": "()",
+    "Permuted": "(permutation: 'tuple[int, ...]') -> None",
+    "RowMajor": "() -> None",
 }
 
 
