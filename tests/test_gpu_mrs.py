@@ -13,10 +13,10 @@ import weakref
 from typing import Any, cast
 
 import pytest
-from devmm._runtimes._gpulib import GpuRuntimeMemoryResource, RmmLikeMemoryResource
 
 from devmm import Device
 from devmm._core.stream import Stream
+from devmm._runtimes._gpulib import GpuRuntimeMemoryResource, RmmLikeMemoryResource
 from devmm._runtimes.base import RuntimeUnavailableError
 from devmm.mrs import cuda as mrs_cuda
 from devmm.mrs import rocm as mrs_rocm
