@@ -16,7 +16,7 @@ lint:  ## Run static checks (does not auto-fix)
 	uv run ruff check .
 
 typecheck:  ## Strict static types (mypy config lives in pyproject.toml)
-	uv run mypy
+	uv run --extra test mypy
 
 fmt:  ## Auto-format: apply ruff lint fixes (imports, etc.) then format
 	uv run ruff check --fix .

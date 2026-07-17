@@ -37,7 +37,7 @@ jobs:
       - name: Lint
         run: uv run ruff check .
       - name: Typecheck (mypy --strict)
-        run: uv run mypy
+        run: uv run --extra test mypy
       - name: Tests (includes wheel-in-bare-venv packaging gate)
         run: uv run --extra test pytest -q
 
