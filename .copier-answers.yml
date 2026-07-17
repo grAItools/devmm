@@ -1,0 +1,26 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY.
+_commit: v0.5.0
+_src_path: https://github.com/grAItools/harness-copier-template.git
+commit_convention: conventional
+copilot_code_review: false
+copilot_code_review_skill: false
+cursor: false
+fmt_command: uv run ruff format .
+generate_scripts: true
+include_claude_hooks: true
+include_example_adr: true
+include_example_skill: true
+include_example_spec: false
+license: BSD-3-Clause
+lint_command: uv run ruff check .
+mcp: false
+mode: brownfield
+package_manager: uv
+pr_merge_strategy: squash
+primary_language: python
+project_description: A grAItools development project.
+project_name: devmm
+project_slug: devmm
+task_runner: make
+test_command: uv run pytest -q
+verify_command: ./scripts/verify.sh

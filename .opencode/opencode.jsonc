@@ -1,0 +1,61 @@
+// OpenCode configuration. See https://opencode.ai/docs/config/
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // AGENTS.md is the canonical instructions file. We also load architecture
+  // and style as context so the primary agent has them at hand without
+  // bloating AGENTS.md itself.
+  "instructions": [
+    "AGENTS.md",
+    "docs/architecture.md",
+    "docs/style.md"
+  ],
+
+  // Default mode. `build` is the full-access primary; switch to `plan` for
+  // read-only planning sessions.
+  "default_agent": "build",
+
+  // Permission policy. The deny-list mirrors the canonical matcher at
+  // .agents/hooks/block-destructive.sh by hand (OpenCode can't call a script).
+  // OpenCode compiles each glob to an anchored regex (`*` -> `.*`), so a leading
+  // and trailing `*` is required to match a substring — hence the `*…*` forms
+  // below, which catch the pattern anywhere (e.g. `cd x && rm -rf y`), matching
+  // the script. The trade-off (shared with the script) is that a benign command
+  // merely *mentioning* a pattern is also caught. The allow-list matches
+  // .claude/settings.json: the build tool, read-only git, plus read-only
+  // inspection helpers (note: `find` is intentionally not allowed —
+  // `find -delete`/`-exec rm` would bypass the deny-list).
+  "permission": {
+    "bash": {
+      "make *": "allow",
+      "git status": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "rg *": "allow",
+      "ls *": "allow",
+      "cat *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "*rm -rf*": "deny",
+      "*push --force*": "deny",
+      "*reset --hard*": "deny",
+      "*DROP TABLE*": "deny"
+    }
+  },
+
+  // Auto-format edited files — OpenCode's native `formatter`, which runs after
+  // every write/edit (the analogue of Claude Code's PostToolUse format hook).
+  // We route formatting through the same per-file entry point Claude Code uses
+  // (`scripts/fmt-file.sh`) so editor-time formatting is byte-for-byte what the
+  // verify gate enforces. "$FILE" is replaced with the edited file's path;
+  // matching is by `extensions`. See docs/harness-usage.md.
+  "formatter": {
+    // Disable the built-in formatter for this language so we don't double-format.
+    "ruff": { "disabled": true },
+    "devmm-fmt": {
+      "command": ["sh", "scripts/fmt-file.sh", "$FILE"],
+      "extensions": [".py", ".pyi"]
+    }
+  }
+}
