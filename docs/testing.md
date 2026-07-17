@@ -32,6 +32,42 @@ GPU** — that is the backbone of the suite (design §9).
   per platform: rmm-pool + torch/cupy `from_dlpack` round trips and a
   stream-race canary.
 
+## Running the CUDA GPU suite on hardware
+
+The T2 suites (`tests/test_cuda_gpu.py`, `tests/test_integrations_gpu.py`) are
+skip-gated behind the `gpu_cuda` marker and opt in with `DEVMM_GPU=cuda`
+(`tests/conftest.py`). On a CUDA-12 host:
+
+1. Install the consumer stack — the `gpu-test-cuda` extra plus a PyTorch CUDA
+   wheel (PyTorch's CUDA builds, including the aarch64/sbsa ones, live on its
+   own index, not PyPI):
+
+   ```sh
+   uv pip install '.[test,gpu-test-cuda]'
+   uv pip install torch --index-url https://download.pytorch.org/whl/cu128
+   ```
+
+2. Run the suite (or `make test-gpu-cuda`, which wraps this):
+
+   ```sh
+   env -u CUDA_HOME -u CUDA_PATH DEVMM_GPU=cuda uv run --no-sync \
+       pytest tests/test_cuda_gpu.py tests/test_integrations_gpu.py
+   ```
+
+Two hardware-only gotchas, both about Numba's JIT toolchain rather than devmm:
+
+- **libnvvm ↔ nvjitlink alignment.** Numba compiles a kernel with `libnvvm`
+  and links it with `nvjitlink`; if `libnvvm` is newer than `nvjitlink`, the
+  link fails with `nvJitLinkError: ERROR 4 in nvvmAddNVVMContainerToProgram,
+  may need newer version of nvJitLink library`. The `gpu-test-cuda` extra keeps
+  `nvidia-cuda-nvcc-cu12` (libnvvm) in the 12.8 series so it stays minor-aligned
+  with the nvjitlink PyTorch's wheels pin.
+- **A newer system CUDA shadows the wheels.** If `CUDA_HOME` points at a system
+  CUDA newer than the cu12 wheels (e.g. a 13.x module on an HPC box), Numba
+  picks up that `libnvvm` and the alignment above breaks again. Clearing
+  `CUDA_HOME`/`CUDA_PATH` (as the run command and `make test-gpu-cuda` do) makes
+  Numba use the cu12 wheels instead.
+
 ## Coverage targets
 
 The behavioural bar comes first: every shipped `LayoutPolicy`, every CPU MR,

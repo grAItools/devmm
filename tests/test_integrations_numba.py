@@ -91,7 +91,11 @@ class TestPlugin:
         assert isinstance(memory, FakeNumbaMemoryPointer)
         name, ptr, nbytes, stream = mr.calls[0]
         assert (name, nbytes) == ("allocate", 256)
-        assert isinstance(memory.pointer, ctypes.c_uint64)
+        # devmm hands Numba the device pointer as a `c_void_p`: newer
+        # numba-cuda converts it to a driver `CUdeviceptr` and coerces with
+        # `int()`, which a `c_uint64` cannot satisfy (older numba read `.value`,
+        # shared by both types).
+        assert isinstance(memory.pointer, ctypes.c_void_p)
         assert memory.pointer.value == ptr
         assert memory.size == 256
         # The EMM protocol carries no stream, so allocations ride the

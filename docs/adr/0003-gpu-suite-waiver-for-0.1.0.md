@@ -59,3 +59,29 @@ Release 0.1.0 with the T2 and T3 hardware suites **waived**, on these terms:
 - This ADR is append-only per repository convention; running the suites on
   hardware supersedes it with a new ADR (or an appended record) rather than
   an edit to the decision.
+
+## Manual-run record — CUDA (T2), 2026-07-18
+
+First execution of the T2 suite on real hardware, per the "manual-run record"
+term above. ROCm (T3) remains unexecuted.
+
+- **Hardware / driver**: 4× NVIDIA GH200 120GB (aarch64), driver 590.48.01,
+  system CUDA 13.1.
+- **Consumers**: `rmm-cu12` 26.06.00, `cupy-cuda12x` 14.1.1,
+  `torch` 2.11.0+cu128, `numba` 0.66.0 + `numba-cuda` 0.30.4, `filecheck` 1.0.3.
+  Numba's JIT toolchain aligned on the cu12 wheels (`nvidia-cuda-nvcc-cu12` /
+  `nvidia-nvjitlink-cu12` both 12.8.93, `CUDA_HOME` unset) — see
+  [`docs/testing.md`](../testing.md#running-the-cuda-gpu-suite-on-hardware).
+- **Result**: `tests/test_cuda_gpu.py` + `tests/test_integrations_gpu.py` —
+  **41 passed, 1 skipped** (the stream-race misorder canary is best-effort and
+  did not manifest). Reproduce with `make test-gpu-cuda`.
+- **Fixes required to get green** (both against dependency versions newer than
+  the suite was written for, written to work across the old and new APIs):
+  the Numba EMM plugin now hands `MemoryPointer` a `ctypes.c_void_p`
+  (numba-cuda ≥ 0.30 coerces the device pointer with `int()`); the rmm
+  statistics test normalises `allocation_counts`, a `Statistics` object in
+  rmm ≥ 26.06 and a dict before.
+
+Per the Decision terms, treating any future T2 failure as release-blocking and
+formally lifting the waiver remain maintainer calls for the next tag; this
+record documents the run, it does not itself repeal the waiver.

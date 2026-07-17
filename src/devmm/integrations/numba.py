@@ -95,9 +95,13 @@ def _build_plugin_class(numba_cuda: Any) -> type:
             # makes.
             buffer = DeviceBuffer(size, mr=mr, stream=ForeignHandleStream(device, 0))
             self.allocations[buffer.ptr] = buffer
+            # Numba wants the device pointer as a `c_void_p`: newer numba-cuda
+            # converts it to a driver `CUdeviceptr` and coerces with `int()`,
+            # which a `c_uint64` cannot satisfy; older numba read `.value`,
+            # which both types share. `c_void_p` is the type that works on both.
             return numba_cuda.MemoryPointer(
                 self.context,
-                ctypes.c_uint64(buffer.ptr),
+                ctypes.c_void_p(buffer.ptr),
                 size,
                 finalizer=_make_finalizer(self.allocations, buffer.ptr),
             )

@@ -32,6 +32,23 @@ cupy = ["cupy"]
 numba = ["numba"]
 # Libraries needed to exercise DLPack round-trips in the test suite (§9).
 test = ["numpy", "array-api-strict"]
+# Consumer stack for the CUDA (T2) GPU suite on hardware
+# (tests/test_cuda_gpu.py, tests/test_integrations_gpu.py), targeting a CUDA-12
+# runtime. `filecheck` is pulled in by Numba's own EMM test protocol.
+# `nvidia-cuda-nvcc-cu12` supplies libnvvm: keep it in the 12.8 series so it
+# stays minor-aligned with the nvjitlink PyTorch's wheels pin, or Numba's JIT
+# linker rejects the NVVM container. `torch` needs the PyTorch CUDA wheel index
+# and, on a host with a newer system CUDA, `CUDA_HOME` must be unset so Numba
+# links these wheels — see docs/testing.md for the full recipe.
+gpu-test-cuda = [
+    "devmm[cuda]",
+    "cupy-cuda12x",
+    "torch",
+    "numba",
+    "numba-cuda",
+    "filecheck",
+    "nvidia-cuda-nvcc-cu12>=12.8,<12.9",
+]
 
 [project.urls]
 Homepage = "https://github.com/grAItools/devmm"

@@ -256,6 +256,15 @@ def test_stream_race_canary_can_misorder_without_the_handoff(
         pytest.skip("race did not manifest with the handoff disabled (best-effort)")
 
 
+def _allocation_counts(adaptor: Any) -> dict[str, int]:
+    """rmm >= 26.06 reports `allocation_counts` as a `Statistics` object;
+    older rmm returned a plain dict. Normalise to a dict either way."""
+    counts = adaptor.allocation_counts
+    if isinstance(counts, dict):
+        return counts
+    return {name: getattr(counts, name) for name in ("current_bytes", "peak_bytes", "total_bytes")}
+
+
 def test_rmm_pool_statistics_agree_with_statistics_adaptor(
     runtime: CudaRuntime, stream: Stream
 ) -> None:
@@ -266,11 +275,11 @@ def test_rmm_pool_statistics_agree_with_statistics_adaptor(
     mr = StatisticsAdaptor(RmmMemoryResource(upstream, _DEVICE))
     sizes = (256, 1024, 4096)
     ptrs = [mr.allocate(nbytes, stream) for nbytes in sizes]
-    counts = upstream.allocation_counts
+    counts = _allocation_counts(upstream)
     assert counts["current_bytes"] == mr.current_bytes == sum(sizes)
     assert counts["peak_bytes"] == mr.peak_bytes == sum(sizes)
     for ptr, nbytes in zip(ptrs, sizes, strict=True):
         mr.deallocate(ptr, nbytes, stream)
-    counts = upstream.allocation_counts
+    counts = _allocation_counts(upstream)
     assert counts["current_bytes"] == mr.current_bytes == 0
     assert counts["total_bytes"] == mr.total_bytes == sum(sizes)
