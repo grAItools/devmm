@@ -9,6 +9,7 @@ Layout, LayoutPolicy, DeviceMemoryResource, available_runtimes, ...) are
 added here as the core modules are implemented.
 """
 
+from devmm._core.buffer import DeviceBuffer
 from devmm._core.device import Device, DeviceType
 from devmm._core.dtypes import DType
 from devmm._core.layout import (
@@ -27,6 +28,11 @@ from devmm._core.memory_resource import (
     LoggingAdaptor,
     StatisticsAdaptor,
 )
+from devmm._core.registry import (
+    get_current_memory_resource,
+    set_current_memory_resource,
+    using_memory_resource,
+)
 from devmm._core.stream import DEFAULT, LEGACY_DEFAULT, PER_THREAD_DEFAULT, Stream
 
 __version__ = "0.1.0"
@@ -40,6 +46,7 @@ __all__ = [
     "ColMajor",
     "DType",
     "Device",
+    "DeviceBuffer",
     "DeviceMemoryResource",
     "DeviceOptimal",
     "DeviceType",
@@ -51,4 +58,7 @@ __all__ = [
     "RowMajor",
     "StatisticsAdaptor",
     "Stream",
+    "get_current_memory_resource",
+    "set_current_memory_resource",
+    "using_memory_resource",
 ]

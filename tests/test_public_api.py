@@ -28,6 +28,7 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "DEFAULT": "StreamSentinel",
     "DType": "(code: 'int', bits: 'int', lanes: 'int' = 1) -> None",
     "Device": "(type: 'DeviceType', index: 'int' = 0) -> None",
+    "DeviceBuffer": "(nbytes: 'int', *, mr: 'DeviceMemoryResource', stream: 'Stream') -> 'None'",
     "DeviceMemoryResource": "()",
     "DeviceOptimal": "() -> None",
     "DeviceType": "enum: CPU=1, CUDA=2, CUDA_HOST=3, ROCM=10, ROCM_HOST=11, CUDA_MANAGED=13",
@@ -47,6 +48,9 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "RowMajor": "() -> None",
     "StatisticsAdaptor": "(upstream: 'DeviceMemoryResource') -> 'None'",
     "Stream": "()",
+    "get_current_memory_resource": "(device: 'Device') -> 'DeviceMemoryResource'",
+    "set_current_memory_resource": "(mr: 'DeviceMemoryResource') -> 'None'",
+    "using_memory_resource": "(mr: 'DeviceMemoryResource') -> 'Iterator[DeviceMemoryResource]'",
 }
 
 MRS_CPU_API_SNAPSHOT: dict[str, str] = {

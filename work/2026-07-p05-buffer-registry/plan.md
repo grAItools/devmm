@@ -4,13 +4,13 @@
 > The overall v0.1 goals, non-goals and release gate live in the design doc and implementation plan; this folder is scoped to a single phase.
 
 ## Architecture decisions
-- Finalizer captures only `(mr, ptr, nbytes, stream_handle)`, never `self`; uses `weakref.finalize`, not `__del__`. ADR: n/a (design §3.5).
+- Finalizer captures only `(mr, ptr, nbytes, stream)`, never `self`; uses `weakref.finalize`, not `__del__`. ADR: n/a (design §3.5, §7.4).
 
 ## Phase — buffer & registry
 **Scope.** Implement `DeviceBuffer` (finalizer, idempotent free, context manager, CPU-path copy helpers) and the contextvar-scoped registry with a temporary sentinel default.
 
 **Steps.**
-1. `DeviceBuffer` with the `(mr, ptr, nbytes, stream_handle)` finalizer, `closed` guard, context manager, and `ctypes.memmove` copy helpers.
+1. `DeviceBuffer` with the `(mr, ptr, nbytes, stream)` finalizer, `closed` guard, context manager, and `ctypes.memmove` copy helpers.
 2. Registry: strong-ref `dict[Device, MR]`, `using_memory_resource` contextvar override, sentinel lazy default.
 
 **Tests.**
