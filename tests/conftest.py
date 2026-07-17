@@ -19,6 +19,9 @@ _GPU_MARKERS: dict[str, tuple[str, str]] = {
 def pytest_configure(config: pytest.Config) -> None:
     for name, (_, description) in _GPU_MARKERS.items():
         config.addinivalue_line("markers", f"{name}: {description}")
+    config.addinivalue_line(
+        "markers", "slow: soak test (leak canaries, ...); deselect with -m 'not slow'"
+    )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:

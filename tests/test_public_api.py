@@ -1,9 +1,10 @@
 """Public-API snapshot: `devmm`'s exported surface is frozen by this test.
 
-The snapshot maps every name in `devmm.__all__` to its call signature (for
-callables and classes) or its type name (for everything else). Growing or
-changing the surface requires a matching change in the design doc
-(`work/devmm-design.md`) before this snapshot is updated.
+The snapshots map every name in `devmm.__all__` — and in the public
+`devmm.mrs.*` modules users import concrete memory resources from — to its
+call signature (for callables and classes) or its type name (for everything
+else). Growing or changing the surface requires a matching change in the
+design doc (`work/devmm-design.md`) before a snapshot is updated.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ import enum
 import inspect
 
 import devmm
+import devmm.mrs.cpu
 
 PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "Aligned": (
@@ -47,6 +49,17 @@ PUBLIC_API_SNAPSHOT: dict[str, str] = {
     "Stream": "()",
 }
 
+MRS_CPU_API_SNAPSHOT: dict[str, str] = {
+    "BytearrayMemoryResource": (
+        "(device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0), "
+        "*, alignment: 'int' = 1) -> 'None'"
+    ),
+    "MallocMemoryResource": (
+        "(device: 'Device' = Device(type=<DeviceType.CPU: 1>, index=0), "
+        "*, alignment: 'int' = 64) -> 'None'"
+    ),
+}
+
 
 def _describe(obj: object) -> str:
     if isinstance(obj, enum.EnumMeta):
@@ -70,3 +83,12 @@ def test_all_matches_snapshot() -> None:
 def test_exported_member_signatures_match_snapshot() -> None:
     described = {name: _describe(getattr(devmm, name)) for name in devmm.__all__}
     assert described == PUBLIC_API_SNAPSHOT
+
+
+def test_mrs_cpu_all_matches_snapshot() -> None:
+    assert sorted(devmm.mrs.cpu.__all__) == sorted(MRS_CPU_API_SNAPSHOT)
+
+
+def test_mrs_cpu_member_signatures_match_snapshot() -> None:
+    described = {name: _describe(getattr(devmm.mrs.cpu, name)) for name in devmm.mrs.cpu.__all__}
+    assert described == MRS_CPU_API_SNAPSHOT
