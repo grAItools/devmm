@@ -30,8 +30,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python }}
-      - name: Sync dev dependencies
-        run: uv sync --group dev
+      - name: Sync dev dependencies (incl. test-oracle extra)
+        run: uv sync --group dev --extra test
       - name: Format check
         run: uv run ruff format --check .
       - name: Lint
@@ -39,7 +39,7 @@ jobs:
       - name: Typecheck (mypy --strict)
         run: uv run mypy
       - name: Tests (includes wheel-in-bare-venv packaging gate)
-        run: uv run pytest -q
+        run: uv run --extra test pytest -q
 
   gate-compiler:
     name: gate (ubuntu-latest, compiler-enabled)

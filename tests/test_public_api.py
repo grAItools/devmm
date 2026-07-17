@@ -8,16 +8,25 @@ changing the surface requires a matching change in the design doc
 
 from __future__ import annotations
 
+import enum
 import inspect
 
 import devmm
 
-# The export surface is intentionally empty: nothing is re-exported until the
-# corresponding core module lands (design §2).
-PUBLIC_API_SNAPSHOT: dict[str, str] = {}
+PUBLIC_API_SNAPSHOT: dict[str, str] = {
+    "DType": "(code: 'int', bits: 'int', lanes: 'int' = 1) -> None",
+    "Device": "(type: 'DeviceType', index: 'int' = 0) -> None",
+    "DeviceType": "enum: CPU=1, CUDA=2, CUDA_HOST=3, ROCM=10, ROCM_HOST=11, CUDA_MANAGED=13",
+}
 
 
 def _describe(obj: object) -> str:
+    if isinstance(obj, enum.EnumMeta):
+        # An enum's surface is its members; for DLPack-code enums the values
+        # are ABI. The metaclass call signature (what `inspect.signature`
+        # would report) also varies across CPython versions.
+        members: list[enum.Enum] = list(obj)
+        return "enum: " + ", ".join(f"{member.name}={member.value}" for member in members)
     if callable(obj):
         try:
             return str(inspect.signature(obj))

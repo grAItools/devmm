@@ -9,6 +9,9 @@ Layout, LayoutPolicy, DeviceMemoryResource, available_runtimes, ...) are
 added here as the core modules are implemented.
 """
 
+from devmm._core.device import Device, DeviceType
+from devmm._core.dtypes import DType
+
 __version__ = "0.1.0"
 
-__all__: list[str] = []
+__all__ = ["DType", "Device", "DeviceType"]

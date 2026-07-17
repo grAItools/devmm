@@ -27,7 +27,9 @@ run() {
 run "format" uv run ruff format --check .
 run "lint" uv run ruff check .
 run "typecheck" uv run mypy
-run "test" uv run pytest -q
+# The `test` extra provides the suite's external oracles (numpy,
+# array-api-strict); without it the differential tests silently skip.
+run "test" uv run --extra test pytest -q
 
 if [ "$failed" -ne 0 ]; then
   printf "\nverify: one or more checks failed.\n"

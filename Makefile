@@ -4,8 +4,10 @@ help:  ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
 	/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
+# Tests run with the `test` extra (numpy, array-api-strict): the suite's
+# differential oracles and DLPack round-trips need a consumer library (§9).
 test:  ## Run fast unit tests
-	uv run pytest -q
+	uv run --extra test pytest -q
 
 test-all: test  ## Run the full suite (override to add integration/e2e)
 	@echo "test-all: extend this target with integration suites as needed"
