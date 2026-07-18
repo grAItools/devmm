@@ -4,8 +4,7 @@
 
 Accepted — signed off by the grAItools maintainer on 2026-07-17, explicitly
 including the extension of the waiver to T2 (CUDA) beyond the p12 spec's
-T3-only waiver clause (T2 half exercised on hardware 2026-07-18, see the
-manual-run record).
+T3-only waiver clause.
 
 ## Context
 
@@ -46,8 +45,7 @@ Release 0.1.0 with the T2 and T3 hardware suites **waived**, on these terms:
   release-blocking bug for the next tag, and this waiver is superseded.
 - The manual-run record (which tests ran, hardware, driver versions) is
   appended to this file when hardware access happens; as of this writing no
-  manual GPU run has been performed. (One has since: see the CUDA (T2)
-  manual-run record at the end of this file.)
+  manual GPU run has been performed.
 
 ## Consequences
 
