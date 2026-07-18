@@ -23,6 +23,7 @@ from devmm.integrations import numba as integrations_numba
 from devmm.testing import RecordingMemoryResource
 from tests._integration_fakes import (
     FakeNumbaCuda,
+    FakeNumbaCUdeviceptr,
     FakeNumbaMemoryInfo,
     FakeNumbaMemoryPointer,
 )
@@ -91,11 +92,10 @@ class TestPlugin:
         assert isinstance(memory, FakeNumbaMemoryPointer)
         name, ptr, nbytes, stream = mr.calls[0]
         assert (name, nbytes) == ("allocate", 256)
-        # devmm hands Numba the device pointer as a `c_void_p`: newer
-        # numba-cuda converts it to a driver `CUdeviceptr` and coerces with
-        # `int()`, which a `c_uint64` cannot satisfy (older numba read `.value`,
-        # shared by both types).
-        assert isinstance(memory.pointer, ctypes.c_void_p)
+        # The pointer arrived as the `c_void_p` the EMM contract requires, so
+        # Numba converted it to a driver pointer (contract enforced by
+        # `FakeNumbaMemoryPointer`, rationale in `integrations.numba`).
+        assert isinstance(memory.pointer, FakeNumbaCUdeviceptr)
         assert memory.pointer.value == ptr
         assert memory.size == 256
         # The EMM protocol carries no stream, so allocations ride the
@@ -105,6 +105,12 @@ class TestPlugin:
         buffer = manager.allocations[ptr]
         assert isinstance(buffer, DeviceBuffer)
         assert buffer.ptr == ptr
+
+    def test_a_pointer_that_is_not_a_c_void_p_is_refused(self) -> None:
+        # Pins the fake's half of the EMM contract: were it to accept any
+        # ctypes integer, the assertion above would stop guarding memalloc.
+        with pytest.raises(TypeError, match="c_void_p"):
+            FakeNumbaMemoryPointer(None, ctypes.c_uint64(0x1000), 256)
 
     def test_the_finalizer_frees_exactly_once(self, fake_numba: FakeNumbaCuda) -> None:
         mr = RecordingMemoryResource(_DEVICE)

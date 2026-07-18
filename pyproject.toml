@@ -37,17 +37,21 @@ test = ["numpy", "array-api-strict"]
 # runtime. `filecheck` is pulled in by Numba's own EMM test protocol.
 # `nvidia-cuda-nvcc-cu12` supplies libnvvm: keep it in the 12.8 series so it
 # stays minor-aligned with the nvjitlink PyTorch's wheels pin, or Numba's JIT
-# linker rejects the NVVM container. `torch` needs the PyTorch CUDA wheel index
-# and, on a host with a newer system CUDA, `CUDA_HOME` must be unset so Numba
-# links these wheels — see docs/testing.md for the full recipe.
+# linker rejects the NVVM container. The `python_full_version < '3.15'` markers
+# hold that alignment: from 3.15 on, numba-cuda resolves the unsuffixed
+# (CUDA-13) `cuda-toolkit` stack, which the cu12 nvcc pin would contradict.
+# `torch` is deliberately absent — its CUDA builds live on PyTorch's own index,
+# so installing it from here would pull a PyPI build and a conflicting nvidia-*
+# set that step 2 of the recipe then replaces. Install it separately, and on a
+# host with a newer system CUDA unset `CUDA_HOME` so Numba links these wheels —
+# see docs/testing.md for the full recipe.
 gpu-test-cuda = [
-    "devmm[cuda]",
-    "cupy-cuda12x",
-    "torch",
-    "numba",
-    "numba-cuda",
-    "filecheck",
-    "nvidia-cuda-nvcc-cu12>=12.8,<12.9",
+    "devmm[cuda]; python_full_version < '3.15'",
+    "cupy-cuda12x; python_full_version < '3.15'",
+    "numba; python_full_version < '3.15'",
+    "numba-cuda; python_full_version < '3.15'",
+    "filecheck; python_full_version < '3.15'",
+    "nvidia-cuda-nvcc-cu12>=12.8,<12.9; python_full_version < '3.15'",
 ]
 
 [project.urls]

@@ -8,18 +8,17 @@ and this project adheres to
 
 ## [Unreleased]
 
-### Fixed
-
-- `integrations.numba`: the `DevmmEMMPlugin` hands Numba's `MemoryPointer` the
-  device pointer as a `ctypes.c_void_p`, fixing kernel launches on
-  numba-cuda ≥ 0.30 (which coerces the pointer with `int()`); still works on
-  older Numba, which read `.value`.
-
 ### Added
 
 - `gpu-test-cuda` extra and `make test-gpu-cuda` to run the CUDA (T2) hardware
   suite, with the setup recipe in [`docs/testing.md`](docs/testing.md#running-the-cuda-gpu-suite-on-hardware).
   First hardware run recorded in [ADR 0003](docs/adr/0003-gpu-suite-waiver-for-0.1.0.md).
+
+### Fixed
+
+- `integrations.numba`: `DevmmEMMPlugin` passes the device pointer as a
+  `ctypes.c_void_p`, the only type numba-cuda ≥ 0.30 converts to a driver
+  pointer.
 
 ## [0.1.0] - 2026-07-17
 

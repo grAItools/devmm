@@ -45,7 +45,8 @@ Release 0.1.0 with the T2 and T3 hardware suites **waived**, on these terms:
   release-blocking bug for the next tag, and this waiver is superseded.
 - The manual-run record (which tests ran, hardware, driver versions) is
   appended to this file when hardware access happens; as of this writing no
-  manual GPU run has been performed.
+  manual GPU run has been performed. (One has since: see the CUDA (T2)
+  manual-run record at the end of this file.)
 
 ## Consequences
 
@@ -78,10 +79,11 @@ term above. ROCm (T3) remains unexecuted.
 - **Fixes required to get green** (both against dependency versions newer than
   the suite was written for, written to work across the old and new APIs):
   the Numba EMM plugin now hands `MemoryPointer` a `ctypes.c_void_p`
-  (numba-cuda ≥ 0.30 coerces the device pointer with `int()`); the rmm
-  statistics test normalises `allocation_counts`, a `Statistics` object in
+  (numba-cuda ≥ 0.30 only converts that type to a driver `CUdeviceptr`); the
+  rmm statistics test normalises `allocation_counts`, a `Statistics` object in
   rmm ≥ 26.06 and a dict before.
 
-Per the Decision terms, treating any future T2 failure as release-blocking and
-formally lifting the waiver remain maintainer calls for the next tag; this
-record documents the run, it does not itself repeal the waiver.
+The Decision's release-blocking clause is met rather than deferred: both
+failures were fixed before any tag ships, so no T2 failure is outstanding
+against a release. T2 having now run on hardware, only the ROCm (T3) half of
+the waiver still has work to do; a new ADR supersedes this one when T3 runs.

@@ -256,13 +256,22 @@ def test_stream_race_canary_can_misorder_without_the_handoff(
         pytest.skip("race did not manifest with the handoff disabled (best-effort)")
 
 
+_STATISTICS_FIELDS = ("current_bytes", "peak_bytes", "total_bytes")
+
+
 def _allocation_counts(adaptor: Any) -> dict[str, int]:
     """rmm >= 26.06 reports `allocation_counts` as a `Statistics` object;
-    older rmm returned a plain dict. Normalise to a dict either way."""
+    older rmm returned a plain dict. Normalise to a dict either way, failing
+    loudly if a field is missing rather than reporting a subset — an upstream
+    rename must not read as a pass."""
     counts = adaptor.allocation_counts
-    if isinstance(counts, dict):
-        return counts
-    return {name: getattr(counts, name) for name in ("current_bytes", "peak_bytes", "total_bytes")}
+    if not isinstance(counts, dict):
+        counts = {
+            name: getattr(counts, name) for name in _STATISTICS_FIELDS if hasattr(counts, name)
+        }
+    missing = [name for name in _STATISTICS_FIELDS if name not in counts]
+    assert not missing, f"rmm allocation_counts is missing {missing}"
+    return counts
 
 
 def test_rmm_pool_statistics_agree_with_statistics_adaptor(
