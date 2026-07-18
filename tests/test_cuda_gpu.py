@@ -256,6 +256,24 @@ def test_stream_race_canary_can_misorder_without_the_handoff(
         pytest.skip("race did not manifest with the handoff disabled (best-effort)")
 
 
+_STATISTICS_FIELDS = ("current_bytes", "peak_bytes", "total_bytes")
+
+
+def _allocation_counts(adaptor: Any) -> dict[str, int]:
+    """rmm >= 26.06 reports `allocation_counts` as a `Statistics` object;
+    older rmm returned a plain dict. Normalise to a dict either way, failing
+    loudly if a field is missing rather than reporting a subset — an upstream
+    rename must not read as a pass."""
+    counts = adaptor.allocation_counts
+    if not isinstance(counts, dict):
+        counts = {
+            name: getattr(counts, name) for name in _STATISTICS_FIELDS if hasattr(counts, name)
+        }
+    missing = [name for name in _STATISTICS_FIELDS if name not in counts]
+    assert not missing, f"rmm allocation_counts is missing {missing}"
+    return counts
+
+
 def test_rmm_pool_statistics_agree_with_statistics_adaptor(
     runtime: CudaRuntime, stream: Stream
 ) -> None:
@@ -266,11 +284,11 @@ def test_rmm_pool_statistics_agree_with_statistics_adaptor(
     mr = StatisticsAdaptor(RmmMemoryResource(upstream, _DEVICE))
     sizes = (256, 1024, 4096)
     ptrs = [mr.allocate(nbytes, stream) for nbytes in sizes]
-    counts = upstream.allocation_counts
+    counts = _allocation_counts(upstream)
     assert counts["current_bytes"] == mr.current_bytes == sum(sizes)
     assert counts["peak_bytes"] == mr.peak_bytes == sum(sizes)
     for ptr, nbytes in zip(ptrs, sizes, strict=True):
         mr.deallocate(ptr, nbytes, stream)
-    counts = upstream.allocation_counts
+    counts = _allocation_counts(upstream)
     assert counts["current_bytes"] == mr.current_bytes == 0
     assert counts["total_bytes"] == mr.total_bytes == sum(sizes)

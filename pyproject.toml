@@ -32,6 +32,28 @@ cupy = ["cupy"]
 numba = ["numba"]
 # Libraries needed to exercise DLPack round-trips in the test suite (§9).
 test = ["numpy", "array-api-strict"]
+# Consumer stack for the CUDA (T2) GPU suite on hardware
+# (tests/test_cuda_gpu.py, tests/test_integrations_gpu.py), targeting a CUDA-12
+# runtime. `filecheck` is pulled in by Numba's own EMM test protocol.
+# `nvidia-cuda-nvcc-cu12` supplies libnvvm: keep it in the 12.8 series so it
+# stays minor-aligned with the nvjitlink PyTorch's wheels pin, or Numba's JIT
+# linker rejects the NVVM container. The `python_full_version < '3.15'` markers
+# bound the extra to where this stack exists: numba-cuda publishes no cp315
+# wheel, and from 3.15 on the resolver reaches for the unsuffixed (CUDA-13)
+# `cuda-toolkit` stack, which the cu12 nvcc pin above would contradict.
+# `torch` is deliberately absent — its CUDA builds live on PyTorch's own index,
+# so installing it from here would pull a PyPI build and a conflicting nvidia-*
+# set that step 2 of the recipe then replaces. Install it separately, and on a
+# host with a newer system CUDA unset `CUDA_HOME` so Numba links these wheels —
+# see docs/testing.md for the full recipe.
+gpu-test-cuda = [
+    "devmm[cuda]; python_full_version < '3.15'",
+    "cupy-cuda12x; python_full_version < '3.15'",
+    "numba; python_full_version < '3.15'",
+    "numba-cuda; python_full_version < '3.15'",
+    "filecheck; python_full_version < '3.15'",
+    "nvidia-cuda-nvcc-cu12>=12.8,<12.9; python_full_version < '3.15'",
+]
 
 [project.urls]
 Homepage = "https://github.com/grAItools/devmm"

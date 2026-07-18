@@ -23,6 +23,7 @@ from devmm.integrations import numba as integrations_numba
 from devmm.testing import RecordingMemoryResource
 from tests._integration_fakes import (
     FakeNumbaCuda,
+    FakeNumbaCUdeviceptr,
     FakeNumbaMemoryInfo,
     FakeNumbaMemoryPointer,
 )
@@ -91,7 +92,10 @@ class TestPlugin:
         assert isinstance(memory, FakeNumbaMemoryPointer)
         name, ptr, nbytes, stream = mr.calls[0]
         assert (name, nbytes) == ("allocate", 256)
-        assert isinstance(memory.pointer, ctypes.c_uint64)
+        # The pointer arrived as the `c_void_p` the EMM contract requires, so
+        # Numba converted it to a driver pointer (contract enforced by
+        # `FakeNumbaMemoryPointer`, rationale in `integrations.numba`).
+        assert isinstance(memory.pointer, FakeNumbaCUdeviceptr)
         assert memory.pointer.value == ptr
         assert memory.size == 256
         # The EMM protocol carries no stream, so allocations ride the
@@ -149,6 +153,16 @@ class TestPlugin:
             pytest.raises(NotImplementedError, match="available memory"),
         ):
             manager.get_memory_info()
+
+
+class TestFakeContract:
+    """The double's own guarantees, on which the plugin tests above rest."""
+
+    def test_a_pointer_that_is_not_a_c_void_p_is_refused(self) -> None:
+        # Were the double to accept any ctypes integer, the memalloc test
+        # would stop guarding the pointer type Numba actually converts.
+        with pytest.raises(TypeError, match="c_void_p"):
+            FakeNumbaMemoryPointer(None, ctypes.c_uint64(0x1000), 256)
 
 
 class TestInstall:

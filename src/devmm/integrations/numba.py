@@ -95,9 +95,18 @@ def _build_plugin_class(numba_cuda: Any) -> type:
             # makes.
             buffer = DeviceBuffer(size, mr=mr, stream=ForeignHandleStream(device, 0))
             self.allocations[buffer.ptr] = buffer
+            # The device pointer goes in as a `ctypes.c_void_p`, the type
+            # Numba's EMM plugin docs prescribe: numba-cuda >= 0.30 builds a
+            # driver `CUdeviceptr` only inside an
+            # `isinstance(pointer, ctypes.c_void_p)` branch and stores any
+            # other type raw, which the driver then rejects; older Numba read
+            # `.value`, which `c_void_p` also has. `c_void_p(0).value` is None
+            # rather than 0, but that NULL must not arise: MRs must return
+            # non-null pointers even for zero-byte allocations (contract
+            # pinned by `devmm.testing.mr_conformance`).
             return numba_cuda.MemoryPointer(
                 self.context,
-                ctypes.c_uint64(buffer.ptr),
+                ctypes.c_void_p(buffer.ptr),
                 size,
                 finalizer=_make_finalizer(self.allocations, buffer.ptr),
             )

@@ -1,9 +1,9 @@
-.PHONY: help test test-all test-devmode lint typecheck fmt fmt-check coverage verify gate-all \
-	release-gate dev clean
+.PHONY: help test test-all test-devmode test-gpu-cuda lint typecheck fmt fmt-check coverage \
+	verify gate-all release-gate dev clean
 
 help:  ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\nTargets:\n"} \
-	/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	/^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 # Tests run with the `test` extra (numpy, array-api-strict): the suite's
 # differential oracles and DLPack round-trips need a consumer library (§9).
@@ -17,6 +17,16 @@ test-all: test  ## Run the full suite (override to add integration/e2e)
 # allocator/warning checks and faulthandler enabled (see docs/testing.md).
 test-devmode:  ## Run the suite under PYTHONDEVMODE=1 with faulthandler
 	PYTHONDEVMODE=1 PYTHONFAULTHANDLER=1 uv run --extra test pytest -q
+
+# The CUDA (T2) hardware suite (docs/adr/0003). Install the deps first —
+# `uv pip install '.[test,gpu-test-cuda]'` plus the PyTorch CUDA wheel — then
+# this runs against the live device without re-resolving (`--no-sync` keeps the
+# hand-installed torch/toolchain wheels). CUDA_HOME is cleared so Numba links
+# libnvvm/nvjitlink from the cu12 wheels, not a newer system CUDA. Full setup
+# recipe and rationale: docs/testing.md.
+test-gpu-cuda:  ## Run the CUDA (T2) GPU suite on hardware (deps must be installed; see docs/testing.md)
+	env -u CUDA_HOME -u CUDA_PATH DEVMM_GPU=cuda uv run --no-sync \
+		pytest tests/test_cuda_gpu.py tests/test_integrations_gpu.py
 
 # Coverage thresholds (see docs/testing.md): >= 90% overall, >= 95% on the
 # core domain model + DLPack layer. Residual uncovered lines carry reasoned

@@ -8,6 +8,7 @@ the per-device resource registry the rmm bridge drives.
 
 from __future__ import annotations
 
+import ctypes
 from collections.abc import Callable
 from types import ModuleType, TracebackType
 from typing import Any
@@ -140,9 +141,25 @@ class FakeCupy:
         return ptr
 
 
+class FakeNumbaCUdeviceptr:
+    """`cuda.bindings.driver.CUdeviceptr` double: the driver pointer type
+    numba-cuda converts an incoming `ctypes.c_void_p` into."""
+
+    def __init__(self, value: int | None) -> None:
+        self.value = value
+
+
 class FakeNumbaMemoryPointer:
-    """`numba.cuda.MemoryPointer` double: frees exactly once through the
-    finalizer, as Numba's deallocation machinery does."""
+    """`numba.cuda.MemoryPointer` double: enforces numba-cuda >= 0.30's
+    pointer contract and frees exactly once through the finalizer, as Numba's
+    deallocation machinery does.
+
+    Numba converts the incoming pointer to a driver `CUdeviceptr` only under
+    `isinstance(pointer, ctypes.c_void_p)`; any other type is stored raw and
+    fails later inside a driver call. This double raises on that path instead,
+    so passing the wrong ctypes type is caught off-hardware (a driver pointer
+    would also work upstream; devmm always passes `c_void_p`).
+    """
 
     def __init__(
         self,
@@ -152,8 +169,14 @@ class FakeNumbaMemoryPointer:
         owner: Any = None,
         finalizer: Callable[[], None] | None = None,
     ) -> None:
+        if not isinstance(pointer, ctypes.c_void_p):
+            raise TypeError(
+                "device pointer must be a ctypes.c_void_p, got "
+                f"{type(pointer).__name__}; Numba converts only that type to a "
+                "driver pointer and stores the rest raw"
+            )
         self.context = context
-        self.pointer = pointer
+        self.pointer = FakeNumbaCUdeviceptr(pointer.value)
         self.size = size
         self.owner = owner
         self._finalizer = finalizer
