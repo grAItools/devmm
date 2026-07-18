@@ -38,8 +38,9 @@ test = ["numpy", "array-api-strict"]
 # `nvidia-cuda-nvcc-cu12` supplies libnvvm: keep it in the 12.8 series so it
 # stays minor-aligned with the nvjitlink PyTorch's wheels pin, or Numba's JIT
 # linker rejects the NVVM container. The `python_full_version < '3.15'` markers
-# hold that alignment: from 3.15 on, numba-cuda resolves the unsuffixed
-# (CUDA-13) `cuda-toolkit` stack, which the cu12 nvcc pin would contradict.
+# bound the extra to where this stack exists: numba-cuda publishes no cp315
+# wheel, and from 3.15 on the resolver reaches for the unsuffixed (CUDA-13)
+# `cuda-toolkit` stack, which the cu12 nvcc pin above would contradict.
 # `torch` is deliberately absent — its CUDA builds live on PyTorch's own index,
 # so installing it from here would pull a PyPI build and a conflicting nvidia-*
 # set that step 2 of the recipe then replaces. Install it separately, and on a

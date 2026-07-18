@@ -157,7 +157,8 @@ class FakeNumbaMemoryPointer:
     Numba converts the incoming pointer to a driver `CUdeviceptr` only under
     `isinstance(pointer, ctypes.c_void_p)`; any other type is stored raw and
     fails later inside a driver call. This double raises on that path instead,
-    so passing the wrong ctypes type is caught off-hardware.
+    so passing the wrong ctypes type is caught off-hardware (a driver pointer
+    would also work upstream; devmm always passes `c_void_p`).
     """
 
     def __init__(
@@ -171,8 +172,8 @@ class FakeNumbaMemoryPointer:
         if not isinstance(pointer, ctypes.c_void_p):
             raise TypeError(
                 "device pointer must be a ctypes.c_void_p, got "
-                f"{type(pointer).__name__}; Numba stores other types raw and "
-                "the driver rejects them"
+                f"{type(pointer).__name__}; Numba converts only that type to a "
+                "driver pointer and stores the rest raw"
             )
         self.context = context
         self.pointer = FakeNumbaCUdeviceptr(pointer.value)

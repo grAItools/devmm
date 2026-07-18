@@ -4,7 +4,8 @@
 
 Accepted — signed off by the grAItools maintainer on 2026-07-17, explicitly
 including the extension of the waiver to T2 (CUDA) beyond the p12 spec's
-T3-only waiver clause.
+T3-only waiver clause (T2 half exercised on hardware 2026-07-18, see the
+manual-run record).
 
 ## Context
 

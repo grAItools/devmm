@@ -42,7 +42,8 @@ skip-gated behind the `gpu_cuda` marker and opt in with `DEVMM_GPU=cuda`
    wheel. `torch` is not in the extra: PyTorch's CUDA builds, including the
    aarch64/sbsa ones, live on its own index, so resolving it from PyPI would
    install a build the second command replaces, along with a conflicting set
-   of `nvidia-*` runtime wheels.
+   of `nvidia-*` runtime wheels. The extra is Python 3.12–3.14 only (no
+   numba-cuda wheel exists for 3.15); on 3.15+ it installs nothing, silently.
 
    ```sh
    uv pip install '.[test,gpu-test-cuda]'
@@ -64,9 +65,10 @@ Two hardware-only gotchas, both about Numba's JIT toolchain rather than devmm:
   may need newer version of nvJitLink library`. The `gpu-test-cuda` extra keeps
   `nvidia-cuda-nvcc-cu12` (libnvvm) in the 12.8 series so it stays minor-aligned
   with the nvjitlink PyTorch's wheels pin. That pin only makes sense on a
-  CUDA-12 stack, so the extra is marked `python_full_version < '3.15'`: from
-  3.15 on, numba-cuda resolves the unsuffixed CUDA-13 `cuda-toolkit` wheels and
-  the cu12 libnvvm would be the mismatched half.
+  CUDA-12 stack, which is the other half of why the extra is marked
+  `python_full_version < '3.15'`: from 3.15 on the resolver reaches for the
+  CUDA-13 `cuda-toolkit` wheels and the cu12 libnvvm becomes the mismatched
+  half.
 - **A newer system CUDA shadows the wheels.** If `CUDA_HOME` points at a system
   CUDA newer than the cu12 wheels (e.g. a 13.x module on an HPC box), Numba
   picks up that `libnvvm` and the alignment above breaks again. Clearing

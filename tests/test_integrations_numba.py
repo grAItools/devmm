@@ -106,12 +106,6 @@ class TestPlugin:
         assert isinstance(buffer, DeviceBuffer)
         assert buffer.ptr == ptr
 
-    def test_a_pointer_that_is_not_a_c_void_p_is_refused(self) -> None:
-        # Pins the fake's half of the EMM contract: were it to accept any
-        # ctypes integer, the assertion above would stop guarding memalloc.
-        with pytest.raises(TypeError, match="c_void_p"):
-            FakeNumbaMemoryPointer(None, ctypes.c_uint64(0x1000), 256)
-
     def test_the_finalizer_frees_exactly_once(self, fake_numba: FakeNumbaCuda) -> None:
         mr = RecordingMemoryResource(_DEVICE)
         manager = _manager()
@@ -159,6 +153,16 @@ class TestPlugin:
             pytest.raises(NotImplementedError, match="available memory"),
         ):
             manager.get_memory_info()
+
+
+class TestFakeContract:
+    """The double's own guarantees, on which the plugin tests above rest."""
+
+    def test_a_pointer_that_is_not_a_c_void_p_is_refused(self) -> None:
+        # Were the double to accept any ctypes integer, the memalloc test
+        # would stop guarding the pointer type Numba actually converts.
+        with pytest.raises(TypeError, match="c_void_p"):
+            FakeNumbaMemoryPointer(None, ctypes.c_uint64(0x1000), 256)
 
 
 class TestInstall:
